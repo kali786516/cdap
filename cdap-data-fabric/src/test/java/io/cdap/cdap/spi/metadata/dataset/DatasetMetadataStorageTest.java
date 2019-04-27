@@ -48,6 +48,7 @@ import io.cdap.cdap.spi.metadata.MetadataMutation.Update;
 import io.cdap.cdap.spi.metadata.MetadataRecord;
 import io.cdap.cdap.spi.metadata.MetadataStorage;
 import io.cdap.cdap.spi.metadata.MetadataStorageTest;
+import io.cdap.cdap.spi.metadata.MutationOptions;
 import io.cdap.cdap.spi.metadata.ScopedNameOfKind;
 import io.cdap.cdap.spi.metadata.SearchRequest;
 import io.cdap.cdap.spi.metadata.SearchResponse;
@@ -73,6 +74,9 @@ import static io.cdap.cdap.spi.metadata.MetadataKind.PROPERTY;
 import static io.cdap.cdap.spi.metadata.MetadataKind.TAG;
 
 public class DatasetMetadataStorageTest extends MetadataStorageTest {
+
+  private static MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
+
 
   @VisibleForTesting
   public static DatasetMetadataStorage storage;
@@ -156,20 +160,20 @@ public class DatasetMetadataStorageTest extends MetadataStorageTest {
 
     MetadataRecord service1Record = new MetadataRecord(
       service1, union(new Metadata(USER, userTags, userProps), new Metadata(SYSTEM, sysTags, systemProps)));
-    mds.apply(new Update(service1Record.getEntity(), service1Record.getMetadata()));
+    mds.apply(new Update(service1Record.getEntity(), service1Record.getMetadata()), options);
 
     // dd and then remove some metadata for dataset2
-    mds.apply(new Update(dataset2, new Metadata(USER, temporaryUserTags, userProps)));
+    mds.apply(new Update(dataset2, new Metadata(USER, temporaryUserTags, userProps)), options);
     mds.apply(new Remove(dataset2, temporaryUserTags.stream()
-      .map(tag -> new ScopedNameOfKind(TAG, USER, tag)).collect(Collectors.toSet())));
+      .map(tag -> new ScopedNameOfKind(TAG, USER, tag)).collect(Collectors.toSet())), options);
     mds.apply(new Remove(dataset2, userProps.keySet().stream()
-      .map(tag -> new ScopedNameOfKind(PROPERTY, USER, tag)).collect(Collectors.toSet())));
+      .map(tag -> new ScopedNameOfKind(PROPERTY, USER, tag)).collect(Collectors.toSet())), options);
 
     MetadataRecord dataset1Record = new MetadataRecord(dataset1, new Metadata(USER, tags(), dataset1UserProps));
     MetadataRecord dataset2Record = new MetadataRecord(dataset2, new Metadata(USER, tags(), dataset2UserProps));
 
     mds.batch(ImmutableList.of(new Update(dataset1Record.getEntity(), dataset1Record.getMetadata()),
-                               new Update(dataset2Record.getEntity(), dataset2Record.getMetadata())));
+                               new Update(dataset2Record.getEntity(), dataset2Record.getMetadata())), options);
 
     // Test score and metadata match
     assertInOrder(mds, SearchRequest.of("value1 multiword:av2").addNamespace(ns).build(),
@@ -180,7 +184,7 @@ public class DatasetMetadataStorageTest extends MetadataStorageTest {
                   dataset2Record, dataset1Record, service1Record);
 
     // clean up
-    mds.batch(ImmutableList.of(new Drop(service1), new Drop(dataset1), new Drop(dataset2)));
+    mds.batch(ImmutableList.of(new Drop(service1), new Drop(dataset1), new Drop(dataset2)), options);
   }
 
   // this test is specific to teh DatasetMetadataStorage, because of the specific way it tests pagination:
@@ -202,7 +206,7 @@ public class DatasetMetadataStorageTest extends MetadataStorageTest {
                                new Update(ns1app2, new Metadata(USER, tags("v1"))),
                                new Update(ns1app3, new Metadata(USER, tags("v1"))),
                                new Update(ns2app1, new Metadata(USER, tags("v1"))),
-                               new Update(ns2app2, new Metadata(USER, tags("v1")))));
+                               new Update(ns2app2, new Metadata(USER, tags("v1")))), options);
 
     MetadataRecord record11 = new MetadataRecord(ns1app1, new Metadata(USER, tags("v1")));
     MetadataRecord record12 = new MetadataRecord(ns1app2, new Metadata(USER, tags("v1")));
@@ -233,7 +237,7 @@ public class DatasetMetadataStorageTest extends MetadataStorageTest {
 
     // clean up
     mds.batch(ImmutableList.of(
-      new Drop(ns1app1), new Drop(ns1app2), new Drop(ns1app3), new Drop(ns2app1), new Drop(ns2app2)));
+      new Drop(ns1app1), new Drop(ns1app2), new Drop(ns1app3), new Drop(ns2app1), new Drop(ns2app2)), options);
   }
 
   @Test
