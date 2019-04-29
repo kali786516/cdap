@@ -358,7 +358,6 @@ public class MetadataSubscriberService extends AbstractMessagingSubscriberServic
     public void processMessage(MetadataMessage message, StructuredTableContext context) throws IOException {
       MetadataOperation operation = message.getPayload(GSON, MetadataOperation.class);
       MetadataEntity entity = operation.getEntity();
-
       LOG.trace("Received {}", operation);
       // TODO: Authorize that the operation is allowed. Currently MetadataMessage does not carry user info
       switch (operation.getType()) {

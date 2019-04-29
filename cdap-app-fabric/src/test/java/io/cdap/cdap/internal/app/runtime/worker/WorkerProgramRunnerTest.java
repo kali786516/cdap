@@ -151,7 +151,7 @@ public class WorkerProgramRunnerTest {
       public ProgramController.State call() throws Exception {
         return controller.getState();
       }
-    }, 60, TimeUnit.SECONDS);
+    }, 30, TimeUnit.SECONDS);
 
     // validate worker was able to execute its second transaction
     final TransactionExecutor executor = txExecutorFactory.createExecutor(datasetCache);

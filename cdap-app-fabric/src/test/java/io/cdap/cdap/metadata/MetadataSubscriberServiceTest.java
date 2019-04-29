@@ -133,8 +133,6 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
   private final ProgramId spark1 = NamespaceId.DEFAULT.app("app2").program(ProgramType.SPARK, "spark1");
   private final WorkflowId workflow1 = NamespaceId.DEFAULT.app("app3").workflow("workflow1");
 
-  private final MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
-
   @BeforeClass
   public static void beforeClass() throws Throwable {
     CConfiguration cConfiguration = createBasicCConf();
@@ -436,6 +434,7 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
 
     // get the mds should be empty property since we haven't started the MetadataSubscriberService
     MetadataStorage mds = injector.getInstance(MetadataStorage.class);
+    MutationOptions options = MutationOptions.builder().build();
     Assert.assertEquals(Collections.emptyMap(), mds.read(new Read(workflowId.toMetadataEntity())).getProperties());
     Assert.assertEquals(Collections.emptyMap(), mds.read(new Read(scheduleId.toMetadataEntity())).getProperties());
 
@@ -583,6 +582,7 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
 
     // get the metadata - should be empty since we haven't deployed the app
     MetadataStorage mds = injector.getInstance(MetadataStorage.class);
+    MutationOptions options = MutationOptions.builder().build();
     Assert.assertEquals(Collections.emptyMap(), mds.read(new Read(workflowId.toMetadataEntity())).getProperties());
 
     Store store = injector.getInstance(DefaultStore.class);
@@ -650,6 +650,7 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
     // get the mds and put some workflow metadata in that, the publish of app deletion message should get the metadata
     // deleted
     MetadataStorage mds = injector.getInstance(MetadataStorage.class);
+    MutationOptions options = MutationOptions.builder().build();
 
     // use an app with all program types to get all specification tested
     ApplicationId appId = NamespaceId.DEFAULT.app(AllProgramsApp.NAME);
