@@ -24,18 +24,42 @@ import io.cdap.cdap.api.annotation.Beta;
 @Beta
 public class MutationOptions {
 
+  private final boolean asynchronous;
+
   /**
-   * Whether to block on mutation or return immediately upon ack.
+   * Create a mutation options object.
+   *
+   * @param asynchronous whether metadata mutation call should be asynchronous (non-blocking) or not.
    */
-  public enum WaitPolicy { SYNC, ASYNC }
-
-  private WaitPolicy waitPolicy;
-
-  public MutationOptions(WaitPolicy waitPolicy) {
-    this.waitPolicy = waitPolicy;
+  public MutationOptions(boolean asynchronous) {
+    this.asynchronous = asynchronous;
   }
 
-  public WaitPolicy getWaitPolicy() {
-    return waitPolicy;
+  public boolean isAsynchronous() {
+    return asynchronous;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  /**
+   * Builder for  mutation options.
+   */
+  public static class Builder {
+
+    private boolean asynchronous;
+
+    private Builder() {}
+
+    public Builder setAsynchronous(boolean asynchronous) {
+      this.asynchronous = asynchronous;
+      return this;
+    }
+
+    public MutationOptions build() {
+      return new MutationOptions(asynchronous);
+    }
   }
 }
+

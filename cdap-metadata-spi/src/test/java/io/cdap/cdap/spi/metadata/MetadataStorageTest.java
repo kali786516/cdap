@@ -77,8 +77,6 @@ public abstract class MetadataStorageTest {
   private static final String DEFAULT_NAMESPACE = "default";
   private static final String SYSTEM_NAMESPACE = "system";
 
-  private static MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
-
   protected abstract MetadataStorage getMetadataStorage();
 
   @After
@@ -90,6 +88,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testMutations() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     MetadataEntity entity = ofDataset(DEFAULT_NAMESPACE, "entity");
 
     // get metadata for non-existing entity
@@ -279,7 +278,7 @@ public abstract class MetadataStorageTest {
 
   @Test
   public void testEmptyBatch() throws IOException {
-    getMetadataStorage().batch(new ArrayList<>(), options);
+    getMetadataStorage().batch(new ArrayList<>(), MutationOptions.builder().build());
   }
 
   @Test
@@ -289,6 +288,7 @@ public abstract class MetadataStorageTest {
       new ScopedNameOfKind(PROPERTY, SYSTEM, CREATION_TIME_KEY), MetadataDirective.PRESERVE,
       new ScopedNameOfKind(PROPERTY, SYSTEM, DESCRIPTION_KEY), MetadataDirective.KEEP);
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     Create create = new Create(entity, new Metadata(SYSTEM, tags("batch"), props(
       CREATION_TIME_KEY, "12345678",
       DESCRIPTION_KEY, "hello",
@@ -341,6 +341,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testUpdateRemove() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity entity = ofDataset(DEFAULT_NAMESPACE, "entity");
 
@@ -451,6 +452,7 @@ public abstract class MetadataStorageTest {
       .append(MetadataEntity.ARTIFACT, "artifact").append(MetadataEntity.VERSION, "-SNAPSHOT").build();
 
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     Metadata meta = new Metadata(ImmutableSet.of(new ScopedName(SYSTEM, "sys"), new ScopedName(USER, "usr")),
                                  ImmutableMap.of(new ScopedName(SYSTEM, "sp"), "sv", new ScopedName(USER, "up"), "uv"));
 
@@ -480,6 +482,7 @@ public abstract class MetadataStorageTest {
                                  ImmutableMap.of(new ScopedName(SYSTEM, "sp"), "sv", new ScopedName(USER, "up"), "uv"));
 
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     mds.apply(new Create(withVersion, meta, ImmutableMap.of()), options);
     Assert.assertEquals(meta, mds.read(new Read(withVersion)));
     Assert.assertEquals(meta, mds.read(new Read(withoutVersion)));
@@ -517,6 +520,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchDescription() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity app1 = ofApp("ns1", "app1");
     MetadataEntity app2 = ofApp("ns2", "app1");
@@ -576,6 +580,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchOnTTL() throws Exception {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity ds = ofDataset("ns1", "ds");
     Metadata metaWithTTL = new Metadata(SYSTEM, props(TTL_KEY, "3600"));
@@ -649,6 +654,7 @@ public abstract class MetadataStorageTest {
                                                MetadataConstants.SCHEMA_KEY, superComplexSchema.toString()));
     MetadataRecord record = new MetadataRecord(entity, meta);
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     mds.apply(new Update(entity, meta), options);
     assertResults(mds, SearchRequest.of("myds").build(), record);
@@ -672,6 +678,7 @@ public abstract class MetadataStorageTest {
                                                MetadataConstants.SCHEMA_KEY, invalidSchema));
     MetadataRecord record = new MetadataRecord(entity, meta);
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     mds.apply(new Update(entity, meta), options);
     assertResults(mds, SearchRequest.of("myds").build(), record);
@@ -699,6 +706,7 @@ public abstract class MetadataStorageTest {
 
     // validate update and read
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     mds.batch(ImmutableList.of(new Update(dataset, datasetRecord.getMetadata()),
                                new Update(hype, hypeRecord.getMetadata()),
                                new Update(field, fieldRecord.getMetadata())), options);
@@ -729,6 +737,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchOnTags() throws Exception {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     String ns2 = "ns2";
@@ -821,6 +830,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchOnTagsUpdate() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity entity = ofWorkflow(ofApp(DEFAULT_NAMESPACE, "appX"), "wtf");
     Metadata meta = new Metadata(SYSTEM, tags("tag1", "tag2"));
@@ -851,6 +861,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchOnTypes() throws Exception {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity myDs = ofDataset(DEFAULT_NAMESPACE, "myDs");
     MetadataEntity myField1 = MetadataEntity.builder(myDs).appendAsType("field", "myField1").build();
@@ -877,6 +888,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchOnValue() throws Exception {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity program = ofWorker(ofApp("ns1", "app1"), "wk1");
     MetadataEntity dataset = ofDataset("ns1", "ds2");
@@ -932,6 +944,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchOnKeyValue() throws Exception {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity program = ofWorker(ofApp("ns1", "app1"), "wk1");
     MetadataEntity dataset = ofDataset("ns1", "ds2");
@@ -991,6 +1004,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testUpdateSearch() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String ns = "ns";
     MetadataEntity program = ofWorker(ofApp(ns, "app1"), "wk1");
@@ -1028,6 +1042,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchIncludesSystemEntities() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     String ns2 = "ns2";
@@ -1089,6 +1104,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchDifferentNamespaces() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     MetadataEntity artifact = ofArtifact(ns1, "artifact", "1.0");
@@ -1120,6 +1136,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testCrossNamespaceSearch() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     String ns2 = "ns2";
@@ -1161,6 +1178,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testCrossNamespaceDefaultSearch() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity ns1app = ofApp("ns1", "a");
     MetadataEntity ns2app = ofApp("ns2", "a");
@@ -1182,6 +1200,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testCrossNamespaceCustomSearch() throws Exception {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String appName = "app";
     MetadataEntity ns1App = ofApp("ns1", appName);
@@ -1204,6 +1223,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchPagination() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String ns = "ns";
     MetadataEntity app1 = ofApp(ns, "app");
@@ -1262,6 +1282,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSortedSearchAndPagination() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     // create 10 unique random entity ids with random creation times
     NoDupRandom random = new NoDupRandom();
@@ -1342,6 +1363,7 @@ public abstract class MetadataStorageTest {
   @Test
   public void testCursorsOffsetsAndTotals() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     List<MetadataRecord> records = IntStream.range(0, 20)
       .mapToObj(i -> new MetadataRecord(ofDataset(DEFAULT_NAMESPACE, "ds" + i),
                                         new Metadata(SYSTEM, props(ENTITY_NAME_KEY, "ds" + i))))
@@ -1432,6 +1454,7 @@ public abstract class MetadataStorageTest {
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     CompletionService<MetadataChange> completionService = new ExecutorCompletionService<>(executor);
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     MetadataEntity entity = MetadataEntity.ofDataset("myds");
     // add "r<i>" tags to be removed by the individual threads
     mds.apply(new Update(entity, new Metadata(
@@ -1479,6 +1502,7 @@ public abstract class MetadataStorageTest {
     int numThreads = 10; // T threads
     int numEntities = 20; // N entities
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     CompletionService<List<MetadataChange>> completionService = new ExecutorCompletionService<>(executor);
     // Set up N entities with T tags (one to be removed per thread)
@@ -1558,6 +1582,7 @@ public abstract class MetadataStorageTest {
   public void testUpdateDropConflict() throws IOException {
     MetadataEntity entity = MetadataEntity.ofDataset("myds");
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     int numTests = 10;
     IntStream.range(0, numTests).forEach(x -> {
       try {
@@ -1594,6 +1619,7 @@ public abstract class MetadataStorageTest {
     int numThreads = 2;
     int numEntities = 20;
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     CompletionService<List<MetadataChange>> completionService = new ExecutorCompletionService<>(executor);
     Map<Integer, MetadataEntity> entities = IntStream.range(0, numEntities)

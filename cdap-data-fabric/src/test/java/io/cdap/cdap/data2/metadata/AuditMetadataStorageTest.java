@@ -194,7 +194,7 @@ public class AuditMetadataStorageTest extends MetadataStorageTest {
   }
 
   private void generateMetadataUpdates() throws IOException {
-    MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
+    MutationOptions options = MutationOptions.builder().build();
 
     storage.apply(new MetadataMutation.Update(
       dataset.toMetadataEntity(), new io.cdap.cdap.spi.metadata.Metadata(MetadataScope.USER, datasetTags)), options);

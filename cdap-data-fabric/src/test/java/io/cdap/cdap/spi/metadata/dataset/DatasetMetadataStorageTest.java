@@ -75,8 +75,6 @@ import static io.cdap.cdap.spi.metadata.MetadataKind.TAG;
 
 public class DatasetMetadataStorageTest extends MetadataStorageTest {
 
-  private static MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
-
   @VisibleForTesting
   public static DatasetMetadataStorage storage;
   private static TransactionManager txManager;
@@ -140,6 +138,7 @@ public class DatasetMetadataStorageTest extends MetadataStorageTest {
   @Test
   public void testSearchWeight() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     String ns = "ns1";
     NamespaceId nsId = new NamespaceId(ns);
@@ -191,6 +190,7 @@ public class DatasetMetadataStorageTest extends MetadataStorageTest {
   @Test
   public void testCrossNamespacePagination() throws IOException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().build();
 
     NamespaceId ns1Id = new NamespaceId("ns1");
     NamespaceId ns2Id = new NamespaceId("ns2");

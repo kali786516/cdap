@@ -771,9 +771,8 @@ public class ElasticsearchMetadataStorage implements MetadataStorage {
    * confirmed to be applied to the index, or return immediately after the request is acknowledged.
    */
   private void setRefreshPolicy(WriteRequest<?> request, MutationOptions options) {
-    request.setRefreshPolicy((options.getWaitPolicy() == MutationOptions.WaitPolicy.ASYNC) ?
-                               WriteRequest.RefreshPolicy.IMMEDIATE :
-                               WriteRequest.RefreshPolicy.WAIT_UNTIL);
+    request.setRefreshPolicy(
+      options.isAsynchronous() ? WriteRequest.RefreshPolicy.IMMEDIATE : WriteRequest.RefreshPolicy.WAIT_UNTIL);
   }
 
   /**

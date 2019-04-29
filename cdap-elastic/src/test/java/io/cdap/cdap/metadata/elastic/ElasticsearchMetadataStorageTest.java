@@ -54,7 +54,6 @@ public class ElasticsearchMetadataStorageTest extends MetadataStorageTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ElasticsearchMetadataStorageTest.class);
 
-  private static MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
   private static ElasticsearchMetadataStorage elasticStore;
 
   @Override
@@ -67,7 +66,6 @@ public class ElasticsearchMetadataStorageTest extends MetadataStorageTest {
     CConfiguration cConf = CConfiguration.create();
     cConf.set(Config.CONF_ELASTIC_INDEX_NAME,
               "idx" + new Random(System.currentTimeMillis()).nextInt());
-    cConf.setBoolean(Config.CONF_ELASTIC_WAIT_FOR_MUTATIONS, true);
     cConf.set(Config.CONF_ELASTIC_SCROLL_TIMEOUT, "2s");
     cConf.setInt(Config.CONF_ELASTIC_NUM_REPLICAS, 1);
     cConf.setInt(Config.CONF_ELASTIC_NUM_SHARDS, 1);
@@ -320,6 +318,7 @@ public class ElasticsearchMetadataStorageTest extends MetadataStorageTest {
   @Test
   public void testScrollTimeout() throws IOException, InterruptedException {
     MetadataStorage mds = getMetadataStorage();
+    MutationOptions options = MutationOptions.builder().setAsynchronous(false).build();
 
     List<MetadataRecord> records = IntStream.range(0, 20).boxed().map(i -> new MetadataRecord(
       MetadataEntity.ofDataset("ns" + i, "ds" + i),
