@@ -54,7 +54,8 @@ public interface MetadataAdmin {
    *
    * @throws InvalidMetadataException if some of the properties violate metadata validation rules
    */
-  void addTags(MetadataEntity metadataEntity, Set<String> tags, MutationOptions options) throws InvalidMetadataException, IOException;
+  void addTags(MetadataEntity metadataEntity, Set<String> tags, MutationOptions options)
+    throws InvalidMetadataException, IOException;
 
   /**
    * Returns all metadata (including properties and tags) for the specified {@link MetadataEntity}

@@ -77,7 +77,6 @@ public class DatasetMetadataStorageTest extends MetadataStorageTest {
 
   private static MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
 
-
   @VisibleForTesting
   public static DatasetMetadataStorage storage;
   private static TransactionManager txManager;

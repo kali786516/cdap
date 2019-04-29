@@ -51,6 +51,7 @@ import io.cdap.cdap.spi.metadata.Metadata;
 import io.cdap.cdap.spi.metadata.MetadataKind;
 import io.cdap.cdap.spi.metadata.MetadataMutation;
 import io.cdap.cdap.spi.metadata.MetadataStorage;
+import io.cdap.cdap.spi.metadata.MutationOptions;
 import io.cdap.cdap.spi.metadata.ScopedNameOfKind;
 import io.cdap.cdap.store.NamespaceTable;
 import org.slf4j.Logger;
@@ -147,7 +148,8 @@ public class ProfileMetadataMessageProcessor implements MetadataMessageProcessor
     List<MetadataMutation> updates = new ArrayList<>();
     LOG.trace("Updating profile metadata for {}", entityId);
     collectProfileMetadata(entityId, message, updates);
-    metadataStorage.batch(updates);
+    MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.ASYNC);
+    metadataStorage.batch(updates, options);
   }
 
   private void collectProfileMetadata(EntityId entityId, MetadataMessage message,
@@ -237,7 +239,8 @@ public class ProfileMetadataMessageProcessor implements MetadataMessageProcessor
       addProfileMetadataDelete((NamespacedEntityId) entity, deletes);
     }
     if (!deletes.isEmpty()) {
-      metadataStorage.batch(deletes);
+      MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.ASYNC);
+      metadataStorage.batch(deletes, options);
     }
   }
 

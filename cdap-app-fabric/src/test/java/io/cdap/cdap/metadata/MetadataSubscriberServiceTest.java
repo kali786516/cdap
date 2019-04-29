@@ -97,6 +97,7 @@ import io.cdap.cdap.spi.metadata.Metadata;
 import io.cdap.cdap.spi.metadata.MetadataConstants;
 import io.cdap.cdap.spi.metadata.MetadataMutation;
 import io.cdap.cdap.spi.metadata.MetadataStorage;
+import io.cdap.cdap.spi.metadata.MutationOptions;
 import io.cdap.cdap.spi.metadata.Read;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -131,6 +132,8 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
 
   private final ProgramId spark1 = NamespaceId.DEFAULT.app("app2").program(ProgramType.SPARK, "spark1");
   private final WorkflowId workflow1 = NamespaceId.DEFAULT.app("app3").workflow("workflow1");
+
+  private final MutationOptions options = new MutationOptions(MutationOptions.WaitPolicy.SYNC);
 
   @BeforeClass
   public static void beforeClass() throws Throwable {
@@ -548,8 +551,8 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
       profileService.disableProfile(myProfile);
       profileService.disableProfile(myProfile2);
       profileService.deleteAllProfiles(myProfile.getNamespaceId());
-      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()));
-      mds.apply(new MetadataMutation.Drop(scheduleId.toMetadataEntity()));
+      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()), options);
+      mds.apply(new MetadataMutation.Drop(scheduleId.toMetadataEntity()), options);
     }
   }
 
@@ -608,7 +611,7 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
       store.removeAllApplications(NamespaceId.DEFAULT);
       profileService.disableProfile(myProfile);
       profileService.deleteProfile(myProfile);
-      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()));
+      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()), options);
     }
   }
 
@@ -658,7 +661,8 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
     mds.apply(new MetadataMutation.Update(workflowId.toMetadataEntity(),
                                           new Metadata(MetadataScope.SYSTEM,
                                                        Collections.singletonMap("profile",
-                                                                                ProfileId.NATIVE.getScopedName()))));
+                                                                                ProfileId.NATIVE.getScopedName()))),
+              options);
     Assert.assertEquals(ProfileId.NATIVE.getScopedName(), getProfileProperty(mds, workflowId));
 
     // publish app deletion message

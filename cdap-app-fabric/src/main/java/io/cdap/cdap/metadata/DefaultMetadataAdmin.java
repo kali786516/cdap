@@ -71,7 +71,8 @@ public class DefaultMetadataAdmin extends MetadataValidator implements MetadataA
   }
 
   @Override
-  public void addTags(MetadataEntity metadataEntity, Set<String> tags, MutationOptions options) throws InvalidMetadataException, IOException {
+  public void addTags(MetadataEntity metadataEntity, Set<String> tags, MutationOptions options)
+    throws InvalidMetadataException, IOException {
     validateTags(metadataEntity, tags);
     storage.apply(new MetadataMutation.Update(metadataEntity, new Metadata(MetadataScope.USER, tags)), options);
   }
@@ -137,9 +138,11 @@ public class DefaultMetadataAdmin extends MetadataValidator implements MetadataA
   }
 
   @Override
-  public void removeProperties(MetadataEntity metadataEntity, Set<String> keys, MutationOptions options) throws IOException {
+  public void removeProperties(MetadataEntity metadataEntity, Set<String> keys, MutationOptions options)
+    throws IOException {
     storage.apply(new MetadataMutation.Remove(metadataEntity, keys.stream()
-      .map(key -> new ScopedNameOfKind(MetadataKind.PROPERTY, MetadataScope.USER, key)).collect(Collectors.toSet())), options);
+      .map(key -> new ScopedNameOfKind(MetadataKind.PROPERTY, MetadataScope.USER, key))
+      .collect(Collectors.toSet())), options);
   }
 
   @Override
@@ -150,7 +153,8 @@ public class DefaultMetadataAdmin extends MetadataValidator implements MetadataA
   @Override
   public void removeTags(MetadataEntity metadataEntity, Set<String> tags, MutationOptions options) throws IOException {
     storage.apply(new MetadataMutation.Remove(metadataEntity, tags.stream()
-      .map(tag -> new ScopedNameOfKind(MetadataKind.TAG, MetadataScope.USER, tag)).collect(Collectors.toSet())), options);
+      .map(tag -> new ScopedNameOfKind(MetadataKind.TAG, MetadataScope.USER, tag))
+      .collect(Collectors.toSet())), options);
   }
 
   @Override

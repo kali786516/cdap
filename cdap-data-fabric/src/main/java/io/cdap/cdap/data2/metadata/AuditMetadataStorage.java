@@ -119,7 +119,8 @@ public class AuditMetadataStorage implements MetadataStorage {
   }
 
   @Override
-  public List<MetadataChange> batch(List<? extends MetadataMutation> mutations, MutationOptions options) throws IOException {
+  public List<MetadataChange> batch(List<? extends MetadataMutation> mutations,
+                                    MutationOptions options) throws IOException {
     List<MetadataChange> changes;
     try {
       changes = storage.batch(mutations, options);

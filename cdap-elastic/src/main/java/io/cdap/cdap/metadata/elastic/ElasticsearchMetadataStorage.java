@@ -48,7 +48,6 @@ import io.cdap.cdap.spi.metadata.MetadataMutation;
 import io.cdap.cdap.spi.metadata.MetadataRecord;
 import io.cdap.cdap.spi.metadata.MetadataStorage;
 import io.cdap.cdap.spi.metadata.MutationOptions;
-import io.cdap.cdap.spi.metadata.MutationOptions.WaitPolicy;
 import io.cdap.cdap.spi.metadata.Read;
 import io.cdap.cdap.spi.metadata.ScopedName;
 import io.cdap.cdap.spi.metadata.ScopedNameOfKind;
@@ -81,7 +80,6 @@ import org.elasticsearch.action.search.ClearScrollRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchScrollRequest;
 import org.elasticsearch.action.support.WriteRequest;
-import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
@@ -176,7 +174,6 @@ public class ElasticsearchMetadataStorage implements MetadataStorage {
   private final RestHighLevelClient client;
   private final String indexName;
   private final String scrollTimeout;
-  // private final WriteRequest.RefreshPolicy refreshPolicy;
 
   private volatile boolean created = false;
   private int maxWindowSize = Config.DEFAULT_MAX_RESULT_WINDOW;
@@ -189,8 +186,6 @@ public class ElasticsearchMetadataStorage implements MetadataStorage {
     this.cConf = cConf;
     indexName = cConf.get(Config.CONF_ELASTIC_INDEX_NAME, Config.DEFAULT_INDEX_NAME);
     scrollTimeout = cConf.get(Config.CONF_ELASTIC_SCROLL_TIMEOUT, Config.DEFAULT_SCROLL_TIMEOUT);
-    // refreshPolicy = cConf.getBoolean(Config.CONF_ELASTIC_WAIT_FOR_MUTATIONS, Config.DEFAULT_WAIT_FOR_MUTATIONS)
-    //   ? WriteRequest.RefreshPolicy.WAIT_UNTIL : WriteRequest.RefreshPolicy.IMMEDIATE;
     String elasticHosts = cConf.get(Config.CONF_ELASTIC_HOSTS, Config.DEFAULT_ELASTIC_HOSTS);
     int numRetries = cConf.getInt(Config.CONF_ELASTIC_CONFLICT_NUM_RETRIES,
                                   Config.DEFAULT_ELASTIC_CONFLICT_NUM_RETRIES);
@@ -776,9 +771,9 @@ public class ElasticsearchMetadataStorage implements MetadataStorage {
    * confirmed to be applied to the index, or return immediately after the request is acknowledged.
    */
   private void setRefreshPolicy(WriteRequest<?> request, MutationOptions options) {
-    request.setRefreshPolicy((options.getWaitPolicy() == WaitPolicy.ASYNC) ?
-                               RefreshPolicy.IMMEDIATE :
-                               RefreshPolicy.WAIT_UNTIL);
+    request.setRefreshPolicy((options.getWaitPolicy() == MutationOptions.WaitPolicy.ASYNC) ?
+                               WriteRequest.RefreshPolicy.IMMEDIATE :
+                               WriteRequest.RefreshPolicy.WAIT_UNTIL);
   }
 
   /**
