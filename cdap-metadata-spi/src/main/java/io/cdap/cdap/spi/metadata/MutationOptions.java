@@ -31,7 +31,7 @@ public class MutationOptions {
    *
    * @param asynchronous whether metadata mutation call should be asynchronous (non-blocking) or not.
    */
-  public MutationOptions(boolean asynchronous) {
+  private MutationOptions(boolean asynchronous) {
     this.asynchronous = asynchronous;
   }
 
@@ -52,6 +52,9 @@ public class MutationOptions {
 
     private Builder() {}
 
+    /**
+     * Allows setting asynchronous field for MutationOptions; if not called, defaults to false (i.e. synchronous)
+     */
     public Builder setAsynchronous(boolean asynchronous) {
       this.asynchronous = asynchronous;
       return this;
@@ -62,6 +65,9 @@ public class MutationOptions {
     }
   }
 
+  /**
+   * Default MutationOptions, i.e. synchronous Mutation
+   */
   public static final MutationOptions DEFAULT = builder().setAsynchronous(false).build();
 }
 

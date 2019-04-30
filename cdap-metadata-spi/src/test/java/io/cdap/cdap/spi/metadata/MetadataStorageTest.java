@@ -26,6 +26,7 @@ import io.cdap.cdap.api.annotation.Beta;
 import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.api.metadata.MetadataEntity;
 import io.cdap.cdap.api.metadata.MetadataScope;
+import io.cdap.cdap.common.utils.Tasks;
 import io.cdap.cdap.spi.metadata.MetadataMutation.Create;
 import io.cdap.cdap.spi.metadata.MetadataMutation.Drop;
 import io.cdap.cdap.spi.metadata.MetadataMutation.Remove;
@@ -76,6 +77,8 @@ public abstract class MetadataStorageTest {
   private static final String TYPE_PROGRAM = MetadataEntity.PROGRAM;
   private static final String DEFAULT_NAMESPACE = "default";
   private static final String SYSTEM_NAMESPACE = "system";
+
+  private static final MutationOptions ASYNC = MutationOptions.builder().setAsynchronous(true).build();
 
   protected abstract MetadataStorage getMetadataStorage();
 
@@ -273,6 +276,196 @@ public abstract class MetadataStorageTest {
     change = mds.apply(new Drop(entity), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, Metadata.EMPTY), change);
     verifyMetadata(mds, entity, Metadata.EMPTY);
+  }
+
+  @Test
+  public void testAsyncMutations() throws Exception {
+    MetadataStorage mds = getMetadataStorage();
+    MetadataEntity entity = ofDataset(DEFAULT_NAMESPACE, "entity");
+
+    // get metadata for non-existing entity
+    verifyMetadataAsync(mds, entity, Metadata.EMPTY);
+
+    // drop metadata for non-existing entity succeeds
+    MetadataChange change = mds.apply(new Drop(entity), ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, Metadata.EMPTY), change);
+    verifyMetadataAsync(mds, entity, Metadata.EMPTY);
+
+    // remove metadata for non-existing entity succeeds
+    mds.apply(new Remove(entity, ImmutableSet.of(
+      new ScopedNameOfKind(MetadataKind.TAG, SYSTEM, "st1"),
+      new ScopedNameOfKind(MetadataKind.TAG, USER,   "ut1"),
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "sp2"),
+      new ScopedNameOfKind(PROPERTY, USER,   "up2"))), ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, Metadata.EMPTY), change);
+    verifyMetadataAsync(mds, entity, Metadata.EMPTY);
+
+    // update metadata for non-existing entity creates it
+    Metadata metadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "a"),
+                      new ScopedName(USER,   "b")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "p"), "v",
+                      new ScopedName(USER,   "k"), "v1"));
+    change = mds.apply(new Update(entity, metadata), ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // test that update is idempotent
+    change = mds.apply(new Update(entity, metadata), ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, metadata, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // create metadata replaces existing metadata
+    Metadata previousMetadata = metadata;
+    metadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "st1"),
+                      new ScopedName(SYSTEM, "st2"),
+                      new ScopedName(USER,   "ut1")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"), "sv1",
+                      new ScopedName(SYSTEM, "sp2"), "sv2",
+                      new ScopedName(USER,   "up1"), "uv1",
+                      new ScopedName(USER,   "up2"), "uv2"));
+    MetadataMutation create = new Create(entity, metadata, Collections.emptyMap());
+    change = mds.apply(create, ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
+
+    // verify the metadata with variations of scope and kind
+    verifyMetadataAsync(mds, entity, metadata);
+    // verify the metadata with a select subset of tags and properties
+    verifyMetadataSelectionAsync(mds, entity, metadata, ImmutableSet.of(
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "sp1"),
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "nosuch"),
+      new ScopedNameOfKind(PROPERTY, USER,   "up2"),
+      new ScopedNameOfKind(PROPERTY, USER,   "nosuch"),
+      new ScopedNameOfKind(MetadataKind.TAG,      SYSTEM, "st1"),
+      new ScopedNameOfKind(MetadataKind.TAG,      SYSTEM, "nosuch"),
+      new ScopedNameOfKind(MetadataKind.TAG,      USER,   "ut1"),
+      new ScopedNameOfKind(MetadataKind.TAG,      USER,   "nosuch")));
+    // verify that a non-matching set tags and properties returns empty metadata
+    verifyMetadataSelectionAsync(mds, entity, metadata, ImmutableSet.of(
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "nosuch"),
+      new ScopedNameOfKind(MetadataKind.TAG,      USER,   "nosuch")));
+
+    // replace the system metadata with directives, user metadata should remain unchanged
+    Metadata recreatedMetadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "nst0")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "nsv1",
+                      new ScopedName(SYSTEM, "nsp0"), "sv0"));
+    MetadataMutation recreate = new Create(entity, recreatedMetadata, ImmutableMap.of(
+      new ScopedNameOfKind(MetadataKind.TAG, SYSTEM, "st1"), MetadataDirective.KEEP,
+      new ScopedNameOfKind(MetadataKind.TAG, SYSTEM, "st2"), MetadataDirective.PRESERVE,
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "sp1"), MetadataDirective.PRESERVE,
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "sp2"), MetadataDirective.KEEP));
+    previousMetadata = metadata;
+    // this is the new metadata according to directives
+    metadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "st1"),
+                      new ScopedName(SYSTEM, "st2"),
+                      new ScopedName(SYSTEM, "nst0"),
+                      new ScopedName(USER,   "ut1")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "sv1",
+                      new ScopedName(SYSTEM, "sp2"),  "sv2",
+                      new ScopedName(SYSTEM, "nsp0"), "sv0",
+                      new ScopedName(USER,   "up1"), "uv1",
+                      new ScopedName(USER,   "up2"), "uv2"));
+    change = mds.apply(recreate, ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // replace the metadata with directives
+    recreatedMetadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "nst1"),
+                      new ScopedName(USER,   "nut1")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "nsv1",
+                      new ScopedName(SYSTEM, "nsp2"), "sv2",
+                      new ScopedName(USER,   "up3"),  "uv3"));
+    recreate = new Create(entity, recreatedMetadata, ImmutableMap.of(
+      new ScopedNameOfKind(MetadataKind.TAG, SYSTEM, "st1"), MetadataDirective.KEEP,
+      new ScopedNameOfKind(MetadataKind.TAG, SYSTEM, "st2"), MetadataDirective.PRESERVE,
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "sp1"), MetadataDirective.PRESERVE,
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "sp2"), MetadataDirective.KEEP,
+      new ScopedNameOfKind(PROPERTY, USER, "up2"), MetadataDirective.PRESERVE));
+    previousMetadata = metadata;
+    // this is the new metadata according to directives
+    metadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "st1"),
+                      new ScopedName(SYSTEM, "st2"),
+                      new ScopedName(SYSTEM, "nst1"),
+                      new ScopedName(USER,   "nut1")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "sv1",
+                      new ScopedName(SYSTEM, "sp2"),  "sv2",
+                      new ScopedName(SYSTEM, "nsp2"), "sv2",
+                      new ScopedName(USER,   "up2"),  "uv2",
+                      new ScopedName(USER,   "up3"),  "uv3"));
+    change = mds.apply(recreate, ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // update some tags and properties
+    MetadataMutation update = new Update(entity, new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "ast1"),
+                      new ScopedName(USER,   "aut1")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "nsv1",
+                      new ScopedName(SYSTEM, "nsp2"), "nsv2",
+                      new ScopedName(USER,   "up2") , "nuv2",
+                      new ScopedName(USER,   "up3"),  "uv3")));
+    // verify new metadata after update
+    previousMetadata = metadata;
+    metadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "ast1"),
+                      new ScopedName(SYSTEM, "st1"),
+                      new ScopedName(SYSTEM, "st2"),
+                      new ScopedName(SYSTEM, "nst1"),
+                      new ScopedName(USER,   "aut1"),
+                      new ScopedName(USER,   "nut1")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "nsv1",
+                      new ScopedName(SYSTEM, "sp2"),  "sv2",
+                      new ScopedName(SYSTEM, "nsp2"), "nsv2",
+                      new ScopedName(USER,   "up2"),  "nuv2",
+                      new ScopedName(USER,   "up3"),  "uv3"));
+    change = mds.apply(update, ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // test that update is idempotent
+    change = mds.apply(update, ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, metadata, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // remove some tags and properties
+    MetadataMutation remove = new Remove(entity, ImmutableSet.of(
+      new ScopedNameOfKind(MetadataKind.TAG,      SYSTEM, "st1"),
+      new ScopedNameOfKind(MetadataKind.TAG,      SYSTEM, "st2"),
+      new ScopedNameOfKind(MetadataKind.TAG,      USER,   "nut1"),
+      new ScopedNameOfKind(MetadataKind.TAG,      USER,   "nosuch"),
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "sp2"),
+      new ScopedNameOfKind(PROPERTY, SYSTEM, "nsp2"),
+      new ScopedNameOfKind(PROPERTY, USER,   "up2")));
+    previousMetadata = metadata;
+    metadata = new Metadata(
+      ImmutableSet.of(new ScopedName(SYSTEM, "ast1"),
+                      new ScopedName(SYSTEM, "nst1"),
+                      new ScopedName(USER,   "aut1")),
+      ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "nsv1",
+                      new ScopedName(USER,   "up3"),  "uv3"));
+    change = mds.apply(remove, ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // test that remove is idemtpotent
+    change = mds.apply(remove, ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, metadata, metadata), change);
+    verifyMetadataAsync(mds, entity, metadata);
+
+    // drop all metadata for the entity
+    change = mds.apply(new Drop(entity), ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, metadata, Metadata.EMPTY), change);
+    verifyMetadataAsync(mds, entity, Metadata.EMPTY);
+
+    // drop is idempotent
+    change = mds.apply(new Drop(entity), ASYNC);
+    Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, Metadata.EMPTY), change);
+    verifyMetadataAsync(mds, entity, Metadata.EMPTY);
   }
 
   @Test
@@ -1696,6 +1889,38 @@ public abstract class MetadataStorageTest {
                                       MetadataScope scope, MetadataKind kind) throws IOException {
     Assert.assertEquals(filterBy(metadata, scope, kind), mds.read(new Read(entity, scope, kind)));
   }
+
+  private void verifyMetadataSelectionAsync(MetadataStorage mds, MetadataEntity entity, Metadata metadata,
+                                            ImmutableSet<ScopedNameOfKind> selection) throws Exception {
+    Tasks.waitFor(true, () -> mds.read(new Read(entity, selection)).equals(filterBy(metadata, selection)),
+                  10, TimeUnit.SECONDS);
+  }
+
+  private void verifyMetadataAsync(MetadataStorage mds, MetadataEntity entity, Metadata metadata) throws Exception {
+    // Wait 10 Seconds for entity's entity metadata to reflect the Mutation
+    Tasks.waitFor(true, () -> mds.read(new Read(entity)).equals(metadata), 10, TimeUnit.SECONDS);
+
+    // filter by scope
+    verifyFilteredMetadata(mds, entity, metadata, SYSTEM, null);
+    verifyFilteredMetadata(mds, entity, metadata, USER, null);
+
+    // filter by kind
+    verifyFilteredMetadata(mds, entity, metadata, null, PROPERTY);
+    verifyFilteredMetadata(mds, entity, metadata, null, MetadataKind.TAG);
+
+    // filter by kind and scope
+    verifyFilteredMetadata(mds, entity, metadata, SYSTEM, PROPERTY);
+    verifyFilteredMetadata(mds, entity, metadata, SYSTEM, MetadataKind.TAG);
+    verifyFilteredMetadata(mds, entity, metadata, USER, PROPERTY);
+    verifyFilteredMetadata(mds, entity, metadata, USER, MetadataKind.TAG);
+  }
+
+//  private void verifyFilteredMetadataAsync(MetadataStorage mds, MetadataEntity entity, Metadata metadata,
+//                                           MetadataScope scope, MetadataKind kind) throws Exception {
+//    Tasks.waitFor(true,
+//                  () -> mds.read(new Read(entity, scope, kind)).equals(filterBy(metadata, scope, kind)),
+//                  10, TimeUnit.SECONDS);
+//  }
 
   private Metadata filterBy(Metadata metadata, MetadataScope scope, MetadataKind kind) {
     //noinspection ConstantConditions
