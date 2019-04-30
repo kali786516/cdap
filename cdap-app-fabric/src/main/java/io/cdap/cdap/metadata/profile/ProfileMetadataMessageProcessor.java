@@ -86,7 +86,6 @@ public class ProfileMetadataMessageProcessor implements MetadataMessageProcessor
     new GsonBuilder().registerTypeAdapter(EntityId.class, new EntityIdTypeAdapter())).create();
 
   private final MetadataStorage metadataStorage;
-  private final MutationOptions mutationOptions;
   private final NamespaceTable namespaceTable;
   private final AppMetadataStore appMetadataStore;
   private final ProgramScheduleStoreDataset scheduleDataset;
@@ -98,7 +97,6 @@ public class ProfileMetadataMessageProcessor implements MetadataMessageProcessor
     appMetadataStore = AppMetadataStore.create(structuredTableContext);
     scheduleDataset = Schedulers.getScheduleStore(structuredTableContext);
     preferencesTable = new PreferencesTable(structuredTableContext);
-    mutationOptions = MutationOptions.builder().build();
     this.metadataStorage = metadataStorage;
   }
 
@@ -150,7 +148,7 @@ public class ProfileMetadataMessageProcessor implements MetadataMessageProcessor
     List<MetadataMutation> updates = new ArrayList<>();
     LOG.trace("Updating profile metadata for {}", entityId);
     collectProfileMetadata(entityId, message, updates);
-    metadataStorage.batch(updates, mutationOptions);
+    metadataStorage.batch(updates, MutationOptions.DEFAULT);
   }
 
   private void collectProfileMetadata(EntityId entityId, MetadataMessage message,
@@ -240,8 +238,7 @@ public class ProfileMetadataMessageProcessor implements MetadataMessageProcessor
       addProfileMetadataDelete((NamespacedEntityId) entity, deletes);
     }
     if (!deletes.isEmpty()) {
-      MutationOptions options = MutationOptions.builder().build();
-      metadataStorage.batch(deletes, mutationOptions);
+      metadataStorage.batch(deletes, MutationOptions.DEFAULT);
     }
   }
 

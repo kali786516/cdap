@@ -88,14 +88,13 @@ public abstract class MetadataStorageTest {
   @Test
   public void testMutations() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     MetadataEntity entity = ofDataset(DEFAULT_NAMESPACE, "entity");
 
     // get metadata for non-existing entity
     verifyMetadata(mds, entity, Metadata.EMPTY);
 
     // drop metadata for non-existing entity succeeds
-    MetadataChange change = mds.apply(new Drop(entity), options);
+    MetadataChange change = mds.apply(new Drop(entity), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, Metadata.EMPTY), change);
     verifyMetadata(mds, entity, Metadata.EMPTY);
 
@@ -104,7 +103,7 @@ public abstract class MetadataStorageTest {
       new ScopedNameOfKind(MetadataKind.TAG, SYSTEM, "st1"),
       new ScopedNameOfKind(MetadataKind.TAG, USER,   "ut1"),
       new ScopedNameOfKind(PROPERTY, SYSTEM, "sp2"),
-      new ScopedNameOfKind(PROPERTY, USER,   "up2"))), options);
+      new ScopedNameOfKind(PROPERTY, USER,   "up2"))), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, Metadata.EMPTY), change);
     verifyMetadata(mds, entity, Metadata.EMPTY);
 
@@ -114,12 +113,12 @@ public abstract class MetadataStorageTest {
                       new ScopedName(USER,   "b")),
       ImmutableMap.of(new ScopedName(SYSTEM, "p"), "v",
                       new ScopedName(USER,   "k"), "v1"));
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
     // test that update is idempotent
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, metadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
@@ -134,7 +133,7 @@ public abstract class MetadataStorageTest {
                       new ScopedName(USER,   "up1"), "uv1",
                       new ScopedName(USER,   "up2"), "uv2"));
     MetadataMutation create = new Create(entity, metadata, Collections.emptyMap());
-    change = mds.apply(create, options);
+    change = mds.apply(create, MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
 
     // verify the metadata with variations of scope and kind
@@ -176,7 +175,7 @@ public abstract class MetadataStorageTest {
                       new ScopedName(SYSTEM, "nsp0"), "sv0",
                       new ScopedName(USER,   "up1"), "uv1",
                       new ScopedName(USER,   "up2"), "uv2"));
-    change = mds.apply(recreate, options);
+    change = mds.apply(recreate, MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
@@ -205,7 +204,7 @@ public abstract class MetadataStorageTest {
                       new ScopedName(SYSTEM, "nsp2"), "sv2",
                       new ScopedName(USER,   "up2"),  "uv2",
                       new ScopedName(USER,   "up3"),  "uv3"));
-    change = mds.apply(recreate, options);
+    change = mds.apply(recreate, MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
@@ -231,12 +230,12 @@ public abstract class MetadataStorageTest {
                       new ScopedName(SYSTEM, "nsp2"), "nsv2",
                       new ScopedName(USER,   "up2"),  "nuv2",
                       new ScopedName(USER,   "up3"),  "uv3"));
-    change = mds.apply(update, options);
+    change = mds.apply(update, MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
     // test that update is idempotent
-    change = mds.apply(update, options);
+    change = mds.apply(update, MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, metadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
@@ -256,29 +255,29 @@ public abstract class MetadataStorageTest {
                       new ScopedName(USER,   "aut1")),
       ImmutableMap.of(new ScopedName(SYSTEM, "sp1"),  "nsv1",
                       new ScopedName(USER,   "up3"),  "uv3"));
-    change = mds.apply(remove, options);
+    change = mds.apply(remove, MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, previousMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
     // test that remove is idemtpotent
-    change = mds.apply(remove, options);
+    change = mds.apply(remove, MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, metadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
     // drop all metadata for the entity
-    change = mds.apply(new Drop(entity), options);
+    change = mds.apply(new Drop(entity), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, metadata, Metadata.EMPTY), change);
     verifyMetadata(mds, entity, Metadata.EMPTY);
 
     // drop is idempotent
-    change = mds.apply(new Drop(entity), options);
+    change = mds.apply(new Drop(entity), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, Metadata.EMPTY), change);
     verifyMetadata(mds, entity, Metadata.EMPTY);
   }
 
   @Test
   public void testEmptyBatch() throws IOException {
-    getMetadataStorage().batch(new ArrayList<>(), MutationOptions.builder().build());
+    getMetadataStorage().batch(new ArrayList<>(), MutationOptions.DEFAULT);
   }
 
   @Test
@@ -288,12 +287,11 @@ public abstract class MetadataStorageTest {
       new ScopedNameOfKind(PROPERTY, SYSTEM, CREATION_TIME_KEY), MetadataDirective.PRESERVE,
       new ScopedNameOfKind(PROPERTY, SYSTEM, DESCRIPTION_KEY), MetadataDirective.KEEP);
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     Create create = new Create(entity, new Metadata(SYSTEM, tags("batch"), props(
       CREATION_TIME_KEY, "12345678",
       DESCRIPTION_KEY, "hello",
       "other", "value")), directives);
-    MetadataChange change = mds.apply(create, options);
+    MetadataChange change = mds.apply(create, MutationOptions.DEFAULT);
     Assert.assertEquals(Metadata.EMPTY, change.getBefore());
     Assert.assertEquals(create.getMetadata(), change.getAfter());
 
@@ -316,32 +314,31 @@ public abstract class MetadataStorageTest {
     // apply all mutations in sequence
     List<MetadataChange> changes = mutations.stream().map(mutation -> {
       try {
-        return mds.apply(mutation, options);
+        return mds.apply(mutation, MutationOptions.DEFAULT);
       } catch (IOException e) {
         throw Throwables.propagate(e);
       }
     }).collect(Collectors.toList());
 
     // drop and recreate the entity
-    mds.apply(new Drop(entity), options);
-    change = mds.apply(create, options);
+    mds.apply(new Drop(entity), MutationOptions.DEFAULT);
+    change = mds.apply(create, MutationOptions.DEFAULT);
     Assert.assertEquals(Metadata.EMPTY, change.getBefore());
     Assert.assertEquals(create.getMetadata(), change.getAfter());
 
     // apply all mutations in batch
-    List<MetadataChange> batchChanges = mds.batch(mutations, options);
+    List<MetadataChange> batchChanges = mds.batch(mutations, MutationOptions.DEFAULT);
 
     // make sure the same mutations were applied
     Assert.assertEquals(changes, batchChanges);
 
     // clean up
-    mds.apply(new Drop(entity), options);
+    mds.apply(new Drop(entity), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testUpdateRemove() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity entity = ofDataset(DEFAULT_NAMESPACE, "entity");
 
@@ -353,71 +350,71 @@ public abstract class MetadataStorageTest {
                                                      new ScopedName(USER, "userTag")),
                                      ImmutableMap.of(new ScopedName(SYSTEM, "sysProp"), "sysVal",
                                                      new ScopedName(USER, "userProp"), "userVal"));
-    MetadataChange change = mds.apply(new Update(entity, metadata), options);
+    MetadataChange change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, metadata), change);
     verifyMetadata(mds, entity, metadata);
 
     // remove everything
-    change = mds.apply(new Remove(entity), options);
+    change = mds.apply(new Remove(entity), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, metadata, Metadata.EMPTY), change);
     verifyMetadata(mds, entity, Metadata.EMPTY);
 
     // add back all metadata, then remove everything in user scope
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, Metadata.EMPTY, metadata), change);
     verifyMetadata(mds, entity, metadata);
-    change = mds.apply(new Remove(entity, USER), options);
+    change = mds.apply(new Remove(entity, USER), MutationOptions.DEFAULT);
     Metadata newMetadata = filterBy(metadata, SYSTEM, null);
     Assert.assertEquals(new MetadataChange(entity, metadata, newMetadata), change);
     verifyMetadata(mds, entity, newMetadata);
 
     // add back all metadata, then remove everything in system scope
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, newMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
-    change = mds.apply(new Remove(entity, SYSTEM), options);
+    change = mds.apply(new Remove(entity, SYSTEM), MutationOptions.DEFAULT);
     newMetadata = filterBy(metadata, USER, null);
     Assert.assertEquals(new MetadataChange(entity, metadata, newMetadata), change);
     verifyMetadata(mds, entity, newMetadata);
 
     // add back all metadata, then remove all tags
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, newMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
-    change = mds.apply(new Remove(entity, TAG), options);
+    change = mds.apply(new Remove(entity, TAG), MutationOptions.DEFAULT);
     newMetadata = filterBy(metadata, null, PROPERTY);
     Assert.assertEquals(new MetadataChange(entity, metadata, newMetadata), change);
     verifyMetadata(mds, entity, newMetadata);
 
     // add back all metadata, then remove all properties
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, newMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
-    change = mds.apply(new Remove(entity, PROPERTY), options);
+    change = mds.apply(new Remove(entity, PROPERTY), MutationOptions.DEFAULT);
     newMetadata = filterBy(metadata, null, TAG);
     Assert.assertEquals(new MetadataChange(entity, metadata, newMetadata), change);
     verifyMetadata(mds, entity, newMetadata);
 
     // add back all metadata, then remove all properties in system scope
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, newMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
-    change = mds.apply(new Remove(entity, SYSTEM, PROPERTY), options);
+    change = mds.apply(new Remove(entity, SYSTEM, PROPERTY), MutationOptions.DEFAULT);
     newMetadata = union(filterBy(metadata, SYSTEM, TAG), filterBy(metadata, USER, null));
     Assert.assertEquals(new MetadataChange(entity, metadata, newMetadata), change);
     verifyMetadata(mds, entity, newMetadata);
 
     // add back all metadata, then remove all tags in user scope
-    change = mds.apply(new Update(entity, metadata), options);
+    change = mds.apply(new Update(entity, metadata), MutationOptions.DEFAULT);
     Assert.assertEquals(new MetadataChange(entity, newMetadata, metadata), change);
     verifyMetadata(mds, entity, metadata);
-    change = mds.apply(new Remove(entity, USER, TAG), options);
+    change = mds.apply(new Remove(entity, USER, TAG), MutationOptions.DEFAULT);
     newMetadata = union(filterBy(metadata, USER, PROPERTY), filterBy(metadata, SYSTEM, null));
     Assert.assertEquals(new MetadataChange(entity, metadata, newMetadata), change);
     verifyMetadata(mds, entity, newMetadata);
 
     // clean up
-    mds.apply(new Drop(entity), options);
+    mds.apply(new Drop(entity), MutationOptions.DEFAULT);
   }
 
   @Test
@@ -452,17 +449,16 @@ public abstract class MetadataStorageTest {
       .append(MetadataEntity.ARTIFACT, "artifact").append(MetadataEntity.VERSION, "-SNAPSHOT").build();
 
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     Metadata meta = new Metadata(ImmutableSet.of(new ScopedName(SYSTEM, "sys"), new ScopedName(USER, "usr")),
                                  ImmutableMap.of(new ScopedName(SYSTEM, "sp"), "sv", new ScopedName(USER, "up"), "uv"));
 
     // metadata can only be retrieved with the matching version
-    mds.apply(new Create(artifactWithVersion, meta, ImmutableMap.of()), options);
+    mds.apply(new Create(artifactWithVersion, meta, ImmutableMap.of()), MutationOptions.DEFAULT);
     Assert.assertEquals(meta, mds.read(new Read(artifactWithVersion)));
     Assert.assertEquals(Metadata.EMPTY, mds.read(new Read(artifactWithDefaultVersion)));
 
     // metadata can only be dropped with the matching version
-    mds.apply(new Drop(artifactWithDefaultVersion), options);
+    mds.apply(new Drop(artifactWithDefaultVersion), MutationOptions.DEFAULT);
     Assert.assertEquals(meta, mds.read(new Read(artifactWithVersion)));
     Assert.assertEquals(Metadata.EMPTY, mds.read(new Read(artifactWithDefaultVersion)));
 
@@ -470,7 +466,7 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("sp:sv").build(), new MetadataRecord(artifactWithVersion, meta));
 
     // actually drop it
-    mds.apply(new Drop(artifactWithVersion), options);
+    mds.apply(new Drop(artifactWithVersion), MutationOptions.DEFAULT);
     Assert.assertEquals(Metadata.EMPTY, mds.read(new Read(artifactWithVersion)));
     Assert.assertEquals(Metadata.EMPTY, mds.read(new Read(artifactWithDefaultVersion)));
   }
@@ -482,15 +478,14 @@ public abstract class MetadataStorageTest {
                                  ImmutableMap.of(new ScopedName(SYSTEM, "sp"), "sv", new ScopedName(USER, "up"), "uv"));
 
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
-    mds.apply(new Create(withVersion, meta, ImmutableMap.of()), options);
+    mds.apply(new Create(withVersion, meta, ImmutableMap.of()), MutationOptions.DEFAULT);
     Assert.assertEquals(meta, mds.read(new Read(withVersion)));
     Assert.assertEquals(meta, mds.read(new Read(withoutVersion)));
     Assert.assertEquals(meta, mds.read(new Read(withDefaultVersion)));
 
     // update with versioned entity
     Metadata meta2 = new Metadata(USER, ImmutableSet.of("plus"), ImmutableMap.of("plus", "minus"));
-    mds.apply(new Update(withVersion, meta2), options);
+    mds.apply(new Update(withVersion, meta2), MutationOptions.DEFAULT);
 
     Metadata newMeta = union(meta, meta2);
     Assert.assertEquals(newMeta, mds.read(new Read(withVersion)));
@@ -500,7 +495,7 @@ public abstract class MetadataStorageTest {
     // remove a property with default version
     mds.apply(new Remove(withDefaultVersion,
                          ImmutableSet.of(new ScopedNameOfKind(TAG, USER, "usr"),
-                                         new ScopedNameOfKind(PROPERTY, SYSTEM, "sp"))), options);
+                                         new ScopedNameOfKind(PROPERTY, SYSTEM, "sp"))), MutationOptions.DEFAULT);
     newMeta = new Metadata(ImmutableSet.of(new ScopedName(SYSTEM, "sys"), new ScopedName(USER, "plus")),
                            ImmutableMap.of(new ScopedName(USER, "up"), "uv", new ScopedName(USER, "plus"), "minus"));
     Assert.assertEquals(newMeta, mds.read(new Read(withVersion)));
@@ -511,7 +506,7 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("plus").build(), new MetadataRecord(withDefaultVersion, newMeta));
 
     // drop entity, verify it's gone for all version variations
-    mds.batch(batch(new Drop(withoutVersion)), options);
+    mds.batch(batch(new Drop(withoutVersion)), MutationOptions.DEFAULT);
     Assert.assertEquals(Metadata.EMPTY, mds.read(new Read(withVersion)));
     Assert.assertEquals(Metadata.EMPTY, mds.read(new Read(withoutVersion)));
     Assert.assertEquals(Metadata.EMPTY, mds.read(new Read(withDefaultVersion)));
@@ -520,7 +515,6 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchDescription() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity app1 = ofApp("ns1", "app1");
     MetadataEntity app2 = ofApp("ns2", "app1");
@@ -535,7 +529,7 @@ public abstract class MetadataStorageTest {
                                                                                     "this other app description")));
     // add some metadata with descriptions
     mds.batch(batch(new Update(app1, app1Record.getMetadata()),
-                    new Update(app2, app2Record.getMetadata())), options);
+                    new Update(app2, app2Record.getMetadata())), MutationOptions.DEFAULT);
 
     // search with field description:
     assertEmpty(mds, SearchRequest.of("description:occursnot").setShowHidden(true).build());
@@ -574,19 +568,18 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("app*").setScope(USER).build(), app1Record);
     assertResults(mds, SearchRequest.of("description").setScope(USER).build(), app1Record);
 
-    mds.batch(batch(new Drop(app1), new Drop(app2)), options);
+    mds.batch(batch(new Drop(app1), new Drop(app2)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSearchOnTTL() throws Exception {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity ds = ofDataset("ns1", "ds");
     Metadata metaWithTTL = new Metadata(SYSTEM, props(TTL_KEY, "3600"));
     MetadataRecord dsRecord = new MetadataRecord(ds, metaWithTTL);
 
-    mds.apply(new Update(ds, metaWithTTL), options);
+    mds.apply(new Update(ds, metaWithTTL), MutationOptions.DEFAULT);
     assertEmpty(mds, SearchRequest.of("ttl:3600").setScope(USER).build());
     assertResults(mds, SearchRequest.of("ttl:3600").build(), dsRecord);
     assertResults(mds, SearchRequest.of("ttl:3600").setScope(SYSTEM).build(), dsRecord);
@@ -602,7 +595,7 @@ public abstract class MetadataStorageTest {
       }
     }
 
-    mds.apply(new Drop(ds), options);
+    mds.apply(new Drop(ds), MutationOptions.DEFAULT);
   }
 
   /**
@@ -654,9 +647,8 @@ public abstract class MetadataStorageTest {
                                                MetadataConstants.SCHEMA_KEY, superComplexSchema.toString()));
     MetadataRecord record = new MetadataRecord(entity, meta);
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
-    mds.apply(new Update(entity, meta), options);
+    mds.apply(new Update(entity, meta), MutationOptions.DEFAULT);
     assertResults(mds, SearchRequest.of("myds").build(), record);
     assertResults(mds, SearchRequest.of("schema:*").build(), record);
     assertResults(mds, SearchRequest.of("properties:schema").build(), record);
@@ -667,7 +659,7 @@ public abstract class MetadataStorageTest {
     }
 
     // clean up
-    mds.apply(new Drop(entity), options);
+    mds.apply(new Drop(entity), MutationOptions.DEFAULT);
   }
 
   @Test
@@ -678,16 +670,15 @@ public abstract class MetadataStorageTest {
                                                MetadataConstants.SCHEMA_KEY, invalidSchema));
     MetadataRecord record = new MetadataRecord(entity, meta);
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
-    mds.apply(new Update(entity, meta), options);
+    mds.apply(new Update(entity, meta), MutationOptions.DEFAULT);
     assertResults(mds, SearchRequest.of("myds").build(), record);
     assertResults(mds, SearchRequest.of("schema:*").build(), record);
     assertResults(mds, SearchRequest.of("properties:schema").build(), record);
     assertResults(mds, SearchRequest.of("schema:inval*").build(), record);
 
     // clean up
-    mds.apply(new Drop(entity), options);
+    mds.apply(new Drop(entity), MutationOptions.DEFAULT);
   }
 
   @Test
@@ -706,10 +697,9 @@ public abstract class MetadataStorageTest {
 
     // validate update and read
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     mds.batch(ImmutableList.of(new Update(dataset, datasetRecord.getMetadata()),
                                new Update(hype, hypeRecord.getMetadata()),
-                               new Update(field, fieldRecord.getMetadata())), options);
+                               new Update(field, fieldRecord.getMetadata())), MutationOptions.DEFAULT);
     Assert.assertEquals(datasetRecord.getMetadata(), mds.read(new Read(dataset)));
     Assert.assertEquals(hypeRecord.getMetadata(), mds.read(new Read(hype)));
     Assert.assertEquals(fieldRecord.getMetadata(), mds.read(new Read(field)));
@@ -731,13 +721,12 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("field:*").build(), fieldRecord);
 
     // clean up
-    mds.batch(batch(new Drop(dataset), new Drop(hype), new Drop(field)), options);
+    mds.batch(batch(new Drop(dataset), new Drop(hype), new Drop(field)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSearchOnTags() throws Exception {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     String ns2 = "ns2";
@@ -764,7 +753,7 @@ public abstract class MetadataStorageTest {
 
     mds.batch(ImmutableList.of(app1Record, app2Record, program1Record, dataset1Record, dataset2Record, file1Record)
                 .stream().map(record -> new Update(record.getEntity(), record.getMetadata()))
-                .collect(Collectors.toList()), options);
+                .collect(Collectors.toList()), MutationOptions.DEFAULT);
 
     // Try to search on all tags
     assertResults(mds, SearchRequest.of("tags:*").addNamespace(ns1).build(),
@@ -821,7 +810,7 @@ public abstract class MetadataStorageTest {
                   app1Record, app2Record, program1Record);
 
     // cleanup
-    mds.batch(entities.stream().map(Drop::new).collect(Collectors.toList()), options);
+    mds.batch(entities.stream().map(Drop::new).collect(Collectors.toList()), MutationOptions.DEFAULT);
 
     // Search should be empty after deleting tags
     assertEmpty(mds, SearchRequest.of("*").setLimit(10).build());
@@ -830,16 +819,15 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchOnTagsUpdate() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity entity = ofWorkflow(ofApp(DEFAULT_NAMESPACE, "appX"), "wtf");
     Metadata meta = new Metadata(SYSTEM, tags("tag1", "tag2"));
-    mds.apply(new Update(entity, meta), options);
+    mds.apply(new Update(entity, meta), MutationOptions.DEFAULT);
     Assert.assertEquals(meta.getTags(SYSTEM), mds.read(new Read(entity, SYSTEM)).getTags(SYSTEM));
     assertResults(mds, SearchRequest.of("tag1").build(), new MetadataRecord(entity, meta));
 
     // add an more tags
-    mds.apply(new Update(entity, new Metadata(SYSTEM, tags("tag3", "tag4"))), options);
+    mds.apply(new Update(entity, new Metadata(SYSTEM, tags("tag3", "tag4"))), MutationOptions.DEFAULT);
     Set<String> newTags = tags("tag1", "tag2", "tag3", "tag4");
     Metadata newMeta = new Metadata(SYSTEM, newTags);
     Assert.assertEquals(newTags, mds.read(new Read(entity, SYSTEM)).getTags(SYSTEM));
@@ -848,20 +836,19 @@ public abstract class MetadataStorageTest {
     }
 
     // add an empty set of tags. This should have no effect on retrieval or search of tags
-    mds.apply(new Update(entity, new Metadata(SYSTEM, tags())), options);
+    mds.apply(new Update(entity, new Metadata(SYSTEM, tags())), MutationOptions.DEFAULT);
     Assert.assertEquals(newTags, mds.read(new Read(entity, SYSTEM)).getTags(SYSTEM));
     for (String expectedTag : newTags) {
       assertResults(mds, SearchRequest.of(expectedTag).build(), new MetadataRecord(entity, newMeta));
     }
 
     // clean up
-    mds.apply(new Drop(entity), options);
+    mds.apply(new Drop(entity), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSearchOnTypes() throws Exception {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity myDs = ofDataset(DEFAULT_NAMESPACE, "myDs");
     MetadataEntity myField1 = MetadataEntity.builder(myDs).appendAsType("field", "myField1").build();
@@ -869,7 +856,8 @@ public abstract class MetadataStorageTest {
     MetadataRecord record1 = new MetadataRecord(myField1, new Metadata(USER, props("testKey1", "testValue1")));
     MetadataRecord record2 = new MetadataRecord(myField2, new Metadata(USER, props("testKey2", "testValue2")));
 
-    mds.batch(batch(new Update(myField1, record1.getMetadata()), new Update(myField2, record2.getMetadata())), options);
+    mds.batch(batch(new Update(myField1, record1.getMetadata()), new Update(myField2, record2.getMetadata())),
+              MutationOptions.DEFAULT);
 
     // Search for it based on value
     assertResults(mds, SearchRequest.of("field:myField1").build(), record1);
@@ -882,13 +870,12 @@ public abstract class MetadataStorageTest {
     assertEmpty(mds, SearchRequest.of("x*").addType("invalid").build());
 
     // clean up
-    mds.batch(batch(new Drop(myField1), new Drop(myField2)), options);
+    mds.batch(batch(new Drop(myField1), new Drop(myField2)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSearchOnValue() throws Exception {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity program = ofWorker(ofApp("ns1", "app1"), "wk1");
     MetadataEntity dataset = ofDataset("ns1", "ds2");
@@ -897,7 +884,7 @@ public abstract class MetadataStorageTest {
     final String multiWordValue = "aV1 av2 ,  -  ,  av3 - av4_av5 av6";
     MetadataRecord programRecord = new MetadataRecord(
       program, new Metadata(USER, props("key1", "value1", "key2", "value2", "multiword", multiWordValue)));
-    mds.apply(new Update(program, programRecord.getMetadata()), options);
+    mds.apply(new Update(program, programRecord.getMetadata()), MutationOptions.DEFAULT);
 
     // Search for it based on value
     assertResults(mds, SearchRequest.of("value1").build(), programRecord);
@@ -918,7 +905,7 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("ValUe1").addType(TYPE_PROGRAM).build(), programRecord);
 
     // add a property for the program
-    mds.apply(new Update(program, new Metadata(SYSTEM, props("key3", "value1"))), options);
+    mds.apply(new Update(program, new Metadata(SYSTEM, props("key3", "value1"))), MutationOptions.DEFAULT);
     programRecord = new MetadataRecord(
       program, new Metadata(ImmutableSet.of(), ImmutableMap.of(new ScopedName(USER, "key1"), "value1",
                                                                new ScopedName(USER, "key2"), "value2",
@@ -929,7 +916,7 @@ public abstract class MetadataStorageTest {
 
     // add a property for the dataset
     MetadataRecord datasetRecord = new MetadataRecord(dataset, new Metadata(USER, props("key21", "value21")));
-    mds.apply(new Update(dataset, datasetRecord.getMetadata()), options);
+    mds.apply(new Update(dataset, datasetRecord.getMetadata()), MutationOptions.DEFAULT);
 
     // Search based on value prefix
     assertResults(mds, SearchRequest.of("value2*").build(), programRecord, datasetRecord);
@@ -938,13 +925,12 @@ public abstract class MetadataStorageTest {
     assertEmpty(mds, SearchRequest.of("value2*").addNamespace("ns12").build());
 
     // clean up
-    mds.batch(batch(new Drop(program), new Drop(dataset)), options);
+    mds.batch(batch(new Drop(program), new Drop(dataset)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSearchOnKeyValue() throws Exception {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity program = ofWorker(ofApp("ns1", "app1"), "wk1");
     MetadataEntity dataset = ofDataset("ns1", "ds2");
@@ -959,7 +945,7 @@ public abstract class MetadataStorageTest {
                                                       new ScopedName(USER, "Key1"), "Value1")));
 
     mds.batch(batch(new Update(program, programRecord.getMetadata()),
-                    new Update(dataset, datasetRecord.getMetadata())), options);
+                    new Update(dataset, datasetRecord.getMetadata())), MutationOptions.DEFAULT);
 
     // search based on the names of properties
     assertResults(mds, SearchRequest.of("properties:key1").build(), programRecord, datasetRecord);
@@ -977,7 +963,8 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("  multiword:aV1   ").build(), programRecord);
 
     // remove the multiword property
-    mds.apply(new Remove(program, ImmutableSet.of(new ScopedNameOfKind(PROPERTY, USER, "multiword"))), options);
+    mds.apply(new Remove(program, ImmutableSet.of(new ScopedNameOfKind(PROPERTY, USER, "multiword"))),
+              MutationOptions.DEFAULT);
     programRecord = new MetadataRecord(program, new Metadata(USER, props("key1", "value1", "key2", "value2")));
 
     // search results should be empty after removing this key as the indexes are deleted
@@ -998,28 +985,28 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("  valu*  sVal*  ").build(), programRecord, datasetRecord);
 
     // clean up
-    mds.batch(batch(new Drop(program), new Drop(dataset)), options);
+    mds.batch(batch(new Drop(program), new Drop(dataset)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testUpdateSearch() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     String ns = "ns";
     MetadataEntity program = ofWorker(ofApp(ns, "app1"), "wk1");
 
     Metadata meta = new Metadata(USER, tags("tag1", "tag2"), props("key1", "value1", "key2", "value2"));
     MetadataRecord programRecord = new MetadataRecord(program, meta);
-    mds.apply(new Update(program, meta), options);
+    mds.apply(new Update(program, meta), MutationOptions.DEFAULT);
 
     assertResults(mds, SearchRequest.of("value1").addNamespace(ns).build(), programRecord);
     assertResults(mds, SearchRequest.of("value2").addNamespace(ns).build(), programRecord);
     assertResults(mds, SearchRequest.of("tag2").addNamespace(ns).build(), programRecord);
 
-    mds.apply(new Update(program, new Metadata(USER, props("key1", "value3"))), options);
+    mds.apply(new Update(program, new Metadata(USER, props("key1", "value3"))), MutationOptions.DEFAULT);
     mds.apply(new Remove(program, ImmutableSet.of(new ScopedNameOfKind(PROPERTY, USER, "key2"),
-                                                  new ScopedNameOfKind(TAG, USER, "tag2"))), options);
+                                                  new ScopedNameOfKind(TAG, USER, "tag2"))),
+              MutationOptions.DEFAULT);
     programRecord = new MetadataRecord(program, new Metadata(USER, tags("tag1"), props("key1", "value3")));
 
     // Searching for value1 should be empty
@@ -1036,13 +1023,12 @@ public abstract class MetadataStorageTest {
     assertResults(mds, SearchRequest.of("tag1").addNamespace(ns).build(), programRecord);
 
     // clean up
-    mds.apply(new Drop(program), options);
+    mds.apply(new Drop(program), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSearchIncludesSystemEntities() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     String ns2 = "ns2";
@@ -1059,7 +1045,8 @@ public abstract class MetadataStorageTest {
     MetadataRecord artifactRecord = new MetadataRecord(artifact, meta);
     MetadataRecord sysArtifactRecord = new MetadataRecord(sysArtifact, meta);
 
-    mds.batch(batch(new Update(program, meta), new Update(artifact, meta), new Update(sysArtifact, meta)), options);
+    mds.batch(batch(new Update(program, meta), new Update(artifact, meta), new Update(sysArtifact, meta)),
+              MutationOptions.DEFAULT);
 
     // perform the exact same multiword search in the 'ns1' namespace. It should return the system artifact along with
     // matched entities in the 'ns1' namespace
@@ -1094,7 +1081,7 @@ public abstract class MetadataStorageTest {
                   sysArtifactRecord);
 
     // clean up
-    mds.batch(batch(new Drop(program), new Drop(artifact), new Drop(sysArtifact)), options);
+    mds.batch(batch(new Drop(program), new Drop(artifact), new Drop(sysArtifact)), MutationOptions.DEFAULT);
   }
 
   private List<? extends MetadataMutation> batch(MetadataMutation ... mutations) {
@@ -1104,7 +1091,6 @@ public abstract class MetadataStorageTest {
   @Test
   public void testSearchDifferentNamespaces() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     MetadataEntity artifact = ofArtifact(ns1, "artifact", "1.0");
@@ -1117,7 +1103,7 @@ public abstract class MetadataStorageTest {
     MetadataRecord artifactRecord = new MetadataRecord(artifact, meta);
     MetadataRecord sysArtifactRecord = new MetadataRecord(sysArtifact, meta);
 
-    mds.batch(batch(new Update(artifact, meta), new Update(sysArtifact, meta)), options);
+    mds.batch(batch(new Update(artifact, meta), new Update(sysArtifact, meta)), MutationOptions.DEFAULT);
 
     // searching only user namespace should not return system entity
     assertResults(mds, SearchRequest.of("aV5").addNamespace(ns1).build(), artifactRecord);
@@ -1130,13 +1116,12 @@ public abstract class MetadataStorageTest {
                   artifactRecord, sysArtifactRecord);
 
     // clean up
-    mds.batch(batch(new Drop(artifact), new Drop(sysArtifact)), options);
+    mds.batch(batch(new Drop(artifact), new Drop(sysArtifact)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testCrossNamespaceSearch() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     String ns1 = "ns1";
     String ns2 = "ns2";
@@ -1156,7 +1141,7 @@ public abstract class MetadataStorageTest {
     // apply all metadata in batch
     mds.batch(Arrays.stream(records)
                 .map(record -> new Update(record.getEntity(), record.getMetadata())).collect(Collectors.toList()),
-              options);
+              MutationOptions.DEFAULT);
 
     // everything should match 'v1'
     assertResults(mds, SearchRequest.of("v1").setLimit(10).build(),
@@ -1172,13 +1157,13 @@ public abstract class MetadataStorageTest {
 
     // clean up
     mds.batch(batch(
-      new Drop(ns1app1), new Drop(ns1app2), new Drop(ns1app3), new Drop(ns2app1), new Drop(ns2app2)), options);
+      new Drop(ns1app1), new Drop(ns1app2), new Drop(ns1app3), new Drop(ns2app1), new Drop(ns2app2)),
+              MutationOptions.DEFAULT);
   }
 
   @Test
   public void testCrossNamespaceDefaultSearch() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     MetadataEntity ns1app = ofApp("ns1", "a");
     MetadataEntity ns2app = ofApp("ns2", "a");
@@ -1187,20 +1172,19 @@ public abstract class MetadataStorageTest {
     MetadataRecord app2Record = new MetadataRecord(ns2app, new Metadata(USER, props("k1", "v1")));
 
     mds.batch(batch(new Update(ns1app, app1Record.getMetadata()),
-                    new Update(ns2app, app2Record.getMetadata())), options);
+                    new Update(ns2app, app2Record.getMetadata())), MutationOptions.DEFAULT);
 
     assertResults(mds, SearchRequest.of("v1").build(), app1Record, app2Record);
     assertResults(mds, SearchRequest.of("v2").build(), app1Record);
     assertResults(mds, SearchRequest.of("*").build(), app1Record, app2Record);
 
     // clean up
-    mds.batch(batch(new Drop(ns1app), new Drop(ns2app)), options);
+    mds.batch(batch(new Drop(ns1app), new Drop(ns2app)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testCrossNamespaceCustomSearch() throws Exception {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     String appName = "app";
     MetadataEntity ns1App = ofApp("ns1", appName);
@@ -1211,19 +1195,18 @@ public abstract class MetadataStorageTest {
     MetadataRecord app2Record = new MetadataRecord(ns2App, meta);
 
     mds.batch(batch(new Update(ns1App, meta),
-                    new Update(ns2App, meta)), options);
+                    new Update(ns2App, meta)), MutationOptions.DEFAULT);
 
     assertInOrder(mds, SearchRequest.of("*").setSorting(new Sorting(ENTITY_NAME_KEY, Sorting.Order.ASC)).build(),
                   app1Record, app2Record);
 
     // clean up
-    mds.batch(batch(new Drop(ns1App), new Drop(ns2App)), options);
+    mds.batch(batch(new Drop(ns1App), new Drop(ns2App)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSearchPagination() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     String ns = "ns";
     MetadataEntity app1 = ofApp(ns, "app");
@@ -1241,7 +1224,7 @@ public abstract class MetadataStorageTest {
     mds.batch(batch(new Update(service, serviceRecord.getMetadata()),
                     new Update(worker, workerRecord.getMetadata()),
                     new Update(dataset, datasetRecord.getMetadata()),
-                    new Update(hidden, hiddenRecord.getMetadata())), options);
+                    new Update(hidden, hiddenRecord.getMetadata())), MutationOptions.DEFAULT);
 
     // assert that search returns all records and determine the order of relevance )it varies by implementation)
     SearchResponse response = mds.search(
@@ -1276,13 +1259,12 @@ public abstract class MetadataStorageTest {
                   noHidden.get(1), noHidden.get(2));
 
     // clean up
-    mds.batch(batch(new Drop(service), new Drop(worker), new Drop(dataset), new Drop(hidden)), options);
+    mds.batch(batch(new Drop(service), new Drop(worker), new Drop(dataset), new Drop(hidden)), MutationOptions.DEFAULT);
   }
 
   @Test
   public void testSortedSearchAndPagination() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
 
     // create 10 unique random entity ids with random creation times
     NoDupRandom random = new NoDupRandom();
@@ -1303,13 +1285,13 @@ public abstract class MetadataStorageTest {
     // index all entities
     mds.batch(records.stream().map(
       record -> new MetadataMutation.Update(record.getEntity(), record.getMetadata()))
-                .collect(Collectors.toList()), options);
+                .collect(Collectors.toList()), MutationOptions.DEFAULT);
 
     testSortedSearch(mds, records, ENTITY_NAME_KEY);
     testSortedSearch(mds, records, CREATION_TIME_KEY);
 
     // clean up
-    mds.batch(entities.stream().map(Drop::new).collect(Collectors.toList()), options);
+    mds.batch(entities.stream().map(Drop::new).collect(Collectors.toList()), MutationOptions.DEFAULT);
   }
 
   private void testSortedSearch(MetadataStorage mds, List<MetadataRecord> records, String sortKey) throws IOException {
@@ -1363,14 +1345,13 @@ public abstract class MetadataStorageTest {
   @Test
   public void testCursorsOffsetsAndTotals() throws IOException {
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     List<MetadataRecord> records = IntStream.range(0, 20)
       .mapToObj(i -> new MetadataRecord(ofDataset(DEFAULT_NAMESPACE, "ds" + i),
                                         new Metadata(SYSTEM, props(ENTITY_NAME_KEY, "ds" + i))))
       .collect(Collectors.toList());
     mds.batch(records.stream()
                 .map(record -> new Update(record.getEntity(), record.getMetadata()))
-                .collect(Collectors.toList()), options);
+                .collect(Collectors.toList()), MutationOptions.DEFAULT);
 
     // no cursors
     validateCursorAndOffset(mds, 0, 10, null, false, 10, 0, 10, true, false);
@@ -1412,7 +1393,8 @@ public abstract class MetadataStorageTest {
     validateCursorAndOffset(mds, 8, 4, cursor, true, 4, 8, 4, true, null);
 
     // clean up
-    mds.batch(records.stream().map(MetadataRecord::getEntity).map(Drop::new).collect(Collectors.toList()), options);
+    mds.batch(records.stream().map(MetadataRecord::getEntity).map(Drop::new).collect(Collectors.toList()),
+              MutationOptions.DEFAULT);
   }
 
   @Nullable
@@ -1454,11 +1436,11 @@ public abstract class MetadataStorageTest {
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     CompletionService<MetadataChange> completionService = new ExecutorCompletionService<>(executor);
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     MetadataEntity entity = MetadataEntity.ofDataset("myds");
     // add "r<i>" tags to be removed by the individual threads
     mds.apply(new Update(entity, new Metadata(
-      USER, IntStream.range(0, numThreads).mapToObj(i -> "r" + i).collect(Collectors.toSet()))), options);
+      USER, IntStream.range(0, numThreads).mapToObj(i -> "r" + i).collect(Collectors.toSet()))),
+              MutationOptions.DEFAULT);
     // create normally replaces. Add directives to preserve all tags. Also create the expected tags
     Set<String> expectedTags = new HashSet<>();
     Map<ScopedNameOfKind, MetadataDirective> directives = new HashMap<>();
@@ -1475,12 +1457,14 @@ public abstract class MetadataStorageTest {
       IntStream.range(0, numThreads).forEach(
         i -> {
           completionService.submit(
-            () -> mds.apply(new Create(entity, new Metadata(USER, tags("c" + i)), directives), options));
+            () -> mds.apply(new Create(entity, new Metadata(USER, tags("c" + i)), directives),
+                            MutationOptions.DEFAULT));
           completionService.submit(
-            () -> mds.apply(new Update(entity, new Metadata(USER, tags("t" + i))), options));
+            () -> mds.apply(new Update(entity, new Metadata(USER, tags("t" + i))),
+                            MutationOptions.DEFAULT));
           completionService.submit(
             () -> mds.apply(new Remove(entity, Collections.singleton(new ScopedNameOfKind(TAG, USER, "r" + i))),
-                            options));
+                            MutationOptions.DEFAULT));
         });
       IntStream.range(0, numThreads * 3).forEach(i -> {
         try {
@@ -1493,7 +1477,7 @@ public abstract class MetadataStorageTest {
       Assert.assertEquals(expectedTags, mds.read(new Read(entity)).getTags(USER));
     } finally {
       // clean up
-      mds.apply(new Drop(entity), options);
+      mds.apply(new Drop(entity), MutationOptions.DEFAULT);
     }
   }
 
@@ -1502,7 +1486,6 @@ public abstract class MetadataStorageTest {
     int numThreads = 10; // T threads
     int numEntities = 20; // N entities
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     CompletionService<List<MetadataChange>> completionService = new ExecutorCompletionService<>(executor);
     // Set up N entities with T tags (one to be removed per thread)
@@ -1510,7 +1493,8 @@ public abstract class MetadataStorageTest {
     Map<Integer, MetadataEntity> entities = IntStream.range(0, numEntities)
       .boxed().collect(Collectors.toMap(i -> i, i -> MetadataEntity.ofDataset("myds" + i)));
     mds.batch(entities.values().stream()
-                .map(entity -> new Update(entity, new Metadata(USER, allRTags))).collect(Collectors.toList()), options);
+                .map(entity -> new Update(entity, new Metadata(USER, allRTags))).collect(Collectors.toList()),
+              MutationOptions.DEFAULT);
 
     // Generate a random but conflicting set of batches of mutations, one for each thread.
     // Construct the expected results for each entity along with the mutations
@@ -1542,7 +1526,7 @@ public abstract class MetadataStorageTest {
     });
     // submit all tasks and wait for their completion
     IntStream.range(0, numThreads).forEach(t -> completionService.submit(
-      () -> mds.batch(mutations.get(t), options)));
+      () -> mds.batch(mutations.get(t), MutationOptions.DEFAULT)));
     IntStream.range(0, numThreads).forEach(t -> {
       try {
         completionService.take();
@@ -1561,7 +1545,7 @@ public abstract class MetadataStorageTest {
         }
       });
     // clean up
-    mds.batch(entities.values().stream().map(Drop::new).collect(Collectors.toList()), options);
+    mds.batch(entities.values().stream().map(Drop::new).collect(Collectors.toList()), MutationOptions.DEFAULT);
   }
 
   /**
@@ -1582,17 +1566,17 @@ public abstract class MetadataStorageTest {
   public void testUpdateDropConflict() throws IOException {
     MetadataEntity entity = MetadataEntity.ofDataset("myds");
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     int numTests = 10;
     IntStream.range(0, numTests).forEach(x -> {
       try {
-        mds.apply(new Create(entity, new Metadata(USER, tags("a")), Collections.emptyMap()), options);
+        mds.apply(new Create(entity, new Metadata(USER, tags("a")), Collections.emptyMap()),
+                  MutationOptions.DEFAULT);
         ExecutorService executor = Executors.newFixedThreadPool(2);
         CompletionService<MetadataChange> completionService = new ExecutorCompletionService<>(executor);
         MetadataMutation update = new Update(entity, new Metadata(USER, tags("b")));
         MetadataMutation drop = new Drop(entity);
-        completionService.submit(() -> mds.apply(update, options));
-        completionService.submit(() -> mds.apply(drop, options));
+        completionService.submit(() -> mds.apply(update, MutationOptions.DEFAULT));
+        completionService.submit(() -> mds.apply(drop, MutationOptions.DEFAULT));
         completionService.take();
         completionService.take();
         // each entity is either dropped then updated (and then it has tag "b" only)
@@ -1604,7 +1588,7 @@ public abstract class MetadataStorageTest {
       }
     });
     // clean up
-    mds.apply(new Drop(entity), options);
+    mds.apply(new Drop(entity), MutationOptions.DEFAULT);
   }
 
   /**
@@ -1619,7 +1603,6 @@ public abstract class MetadataStorageTest {
     int numThreads = 2;
     int numEntities = 20;
     MetadataStorage mds = getMetadataStorage();
-    MutationOptions options = MutationOptions.builder().build();
     ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     CompletionService<List<MetadataChange>> completionService = new ExecutorCompletionService<>(executor);
     Map<Integer, MetadataEntity> entities = IntStream.range(0, numEntities)
@@ -1629,7 +1612,7 @@ public abstract class MetadataStorageTest {
     Random rand = new Random(System.currentTimeMillis());
     IntStream.range(0, numTests).forEach(x -> {
       try {
-        mds.batch(creates, options);
+        mds.batch(creates, MutationOptions.DEFAULT);
         Map<Integer, List<MetadataMutation>> mutations = IntStream.range(0, numThreads)
           .boxed().collect(Collectors.toMap(i -> i, i -> new ArrayList<>()));
         IntStream.range(0, numEntities).forEach(e -> {
@@ -1644,7 +1627,7 @@ public abstract class MetadataStorageTest {
           });
         });
         IntStream.range(0, numThreads).forEach(t -> completionService.submit(
-          () -> mds.batch(mutations.get(t), options)));
+          () -> mds.batch(mutations.get(t), MutationOptions.DEFAULT)));
         IntStream.range(0, numThreads).forEach(t -> {
           try {
             completionService.take();
@@ -1667,7 +1650,7 @@ public abstract class MetadataStorageTest {
         throw Throwables.propagate(e);
       }
     });
-    mds.batch(entities.values().stream().map(Drop::new).collect(Collectors.toList()), options);
+    mds.batch(entities.values().stream().map(Drop::new).collect(Collectors.toList()), MutationOptions.DEFAULT);
   }
 
   private static class NoDupRandom {

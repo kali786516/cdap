@@ -61,5 +61,7 @@ public class MutationOptions {
       return new MutationOptions(asynchronous);
     }
   }
+
+  public static final MutationOptions DEFAULT = builder().setAsynchronous(false).build();
 }
 

@@ -105,7 +105,6 @@ public class MetadataSubscriberService extends AbstractMessagingSubscriberServic
 
   private final CConfiguration cConf;
   private final MetadataStorage metadataStorage;
-  private final MutationOptions mutationOptions;
   private final MultiThreadMessagingContext messagingContext;
   private final TransactionRunner transactionRunner;
   private final int maxRetriesOnConflict;
@@ -135,7 +134,6 @@ public class MetadataSubscriberService extends AbstractMessagingSubscriberServic
     this.cConf = cConf;
     this.messagingContext = new MultiThreadMessagingContext(messagingService);
     this.metadataStorage = metadataStorage;
-    this.mutationOptions = MutationOptions.builder().build();
     this.transactionRunner = transactionRunner;
     this.maxRetriesOnConflict = cConf.getInt(Constants.Metadata.MESSAGING_RETRIES_ON_CONFLICT);
   }
@@ -366,11 +364,11 @@ public class MetadataSubscriberService extends AbstractMessagingSubscriberServic
           MetadataOperation.Create create = (MetadataOperation.Create) operation;
           MetadataMutation mutation = new MetadataMutation.Create(
             entity, new Metadata(MetadataScope.SYSTEM, create.getTags(), create.getProperties()), CREATE_DIRECTIVES);
-          metadataStorage.apply(mutation, mutationOptions);
+          metadataStorage.apply(mutation, MutationOptions.DEFAULT);
           break;
         }
         case DROP: {
-          metadataStorage.apply(new MetadataMutation.Drop(operation.getEntity()), mutationOptions);
+          metadataStorage.apply(new MetadataMutation.Drop(operation.getEntity()), MutationOptions.DEFAULT);
           break;
         }
         case PUT: {
@@ -383,7 +381,7 @@ public class MetadataSubscriberService extends AbstractMessagingSubscriberServic
               validateTags(entity, tags);
             }
             metadataStorage.apply(
-              new MetadataMutation.Update(entity, new Metadata(put.getScope(), tags, props)), mutationOptions);
+              new MetadataMutation.Update(entity, new Metadata(put.getScope(), tags, props)), MutationOptions.DEFAULT);
           } catch (InvalidMetadataException e) {
             LOG.warn("Ignoring invalid metadata operation {} from TMS: {}", operation,
                      GSON.toJson(message.getRawPayload()), e);
@@ -401,22 +399,23 @@ public class MetadataSubscriberService extends AbstractMessagingSubscriberServic
             delete.getTags().forEach(
               name -> toDelete.add(new ScopedNameOfKind(MetadataKind.TAG, delete.getScope(), name)));
           }
-          metadataStorage.apply(new MetadataMutation.Remove(entity, toDelete), mutationOptions);
+          metadataStorage.apply(new MetadataMutation.Remove(entity, toDelete), MutationOptions.DEFAULT);
           break;
         }
         case DELETE_ALL: {
           MetadataScope scope = ((MetadataOperation.DeleteAll) operation).getScope();
-          metadataStorage.apply(new MetadataMutation.Remove(entity, scope), mutationOptions);
+          metadataStorage.apply(new MetadataMutation.Remove(entity, scope), MutationOptions.DEFAULT);
           break;
         }
         case DELETE_ALL_PROPERTIES: {
           MetadataScope scope = ((MetadataOperation.DeleteAllProperties) operation).getScope();
-          metadataStorage.apply(new MetadataMutation.Remove(entity, scope, MetadataKind.PROPERTY), mutationOptions);
+          metadataStorage.apply(new MetadataMutation.Remove(entity, scope, MetadataKind.PROPERTY),
+                                MutationOptions.DEFAULT);
           break;
         }
         case DELETE_ALL_TAGS: {
           MetadataScope scope = ((MetadataOperation.DeleteAllTags) operation).getScope();
-          metadataStorage.apply(new MetadataMutation.Remove(entity, scope, MetadataKind.TAG), mutationOptions);
+          metadataStorage.apply(new MetadataMutation.Remove(entity, scope, MetadataKind.TAG), MutationOptions.DEFAULT);
           break;
         }
         default:
