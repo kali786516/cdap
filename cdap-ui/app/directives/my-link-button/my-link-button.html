@@ -16,10 +16,12 @@
 
 
 <span ng-repeat="dataset in MyLinkButtonCtrl.entities">
-  <a
-    class="btn btn-my-link"
-    href="{{dataset.url}}"
-  >
-    <span>View details</span>
-  </a>
+  <fieldset ng-disabled="MyLinkButtonCtrl.disabled">
+    <a
+      class="btn btn-my-link"
+      href="{{dataset.url}}"
+    >
+      <span>View details</span>
+    </a>
+  </fieldset>
 </span>
