@@ -434,7 +434,6 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
 
     // get the mds should be empty property since we haven't started the MetadataSubscriberService
     MetadataStorage mds = injector.getInstance(MetadataStorage.class);
-    MutationOptions options = MutationOptions.builder().build();
     Assert.assertEquals(Collections.emptyMap(), mds.read(new Read(workflowId.toMetadataEntity())).getProperties());
     Assert.assertEquals(Collections.emptyMap(), mds.read(new Read(scheduleId.toMetadataEntity())).getProperties());
 
@@ -550,8 +549,8 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
       profileService.disableProfile(myProfile);
       profileService.disableProfile(myProfile2);
       profileService.deleteAllProfiles(myProfile.getNamespaceId());
-      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()), options);
-      mds.apply(new MetadataMutation.Drop(scheduleId.toMetadataEntity()), options);
+      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()), MutationOptions.DEFAULT);
+      mds.apply(new MetadataMutation.Drop(scheduleId.toMetadataEntity()), MutationOptions.DEFAULT);
     }
   }
 
@@ -582,7 +581,6 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
 
     // get the metadata - should be empty since we haven't deployed the app
     MetadataStorage mds = injector.getInstance(MetadataStorage.class);
-    MutationOptions options = MutationOptions.builder().build();
     Assert.assertEquals(Collections.emptyMap(), mds.read(new Read(workflowId.toMetadataEntity())).getProperties());
 
     Store store = injector.getInstance(DefaultStore.class);
@@ -611,7 +609,7 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
       store.removeAllApplications(NamespaceId.DEFAULT);
       profileService.disableProfile(myProfile);
       profileService.deleteProfile(myProfile);
-      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()), options);
+      mds.apply(new MetadataMutation.Drop(workflowId.toMetadataEntity()), MutationOptions.DEFAULT);
     }
   }
 
@@ -650,7 +648,6 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
     // get the mds and put some workflow metadata in that, the publish of app deletion message should get the metadata
     // deleted
     MetadataStorage mds = injector.getInstance(MetadataStorage.class);
-    MutationOptions options = MutationOptions.builder().build();
 
     // use an app with all program types to get all specification tested
     ApplicationId appId = NamespaceId.DEFAULT.app(AllProgramsApp.NAME);
@@ -663,7 +660,7 @@ public class MetadataSubscriberServiceTest extends AppFabricTestBase {
                                           new Metadata(MetadataScope.SYSTEM,
                                                        Collections.singletonMap("profile",
                                                                                 ProfileId.NATIVE.getScopedName()))),
-              options);
+              MutationOptions.DEFAULT);
     Assert.assertEquals(ProfileId.NATIVE.getScopedName(), getProfileProperty(mds, workflowId));
 
     // publish app deletion message
