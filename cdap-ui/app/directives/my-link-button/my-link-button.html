@@ -15,8 +15,11 @@
 -->
 
 
-<span ng-repeat="dataset in MyLinkButtonCtrl.entities">
-  <fieldset ng-disabled="MyLinkButtonCtrl.disabled">
+<span ng-repeat="dataset in MyLinkButtonCtrl.entities" class="my-link-button">
+  <fieldset
+    ng-disabled="MyLinkButtonCtrl.disabled"
+    title="{{MyLinkButtonCtrl.disabled ? 'Run the pipeline to view details': ''}}"
+  >
     <a
       class="btn btn-my-link"
       href="{{dataset.url}}"
