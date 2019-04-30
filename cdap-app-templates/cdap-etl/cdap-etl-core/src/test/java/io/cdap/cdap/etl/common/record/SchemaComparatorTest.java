@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.cdap.etl.batch;
+package io.cdap.cdap.etl.common.record;
 
 import io.cdap.cdap.api.data.schema.Schema;
 import org.junit.Assert;
@@ -72,43 +72,49 @@ public class SchemaComparatorTest {
 
   @Test
   public void testNullableIs() {
-    Assert.assertNotEquals(0, COMPARATOR.compare(INT, NULLABLE_INT));
+    assertNotEqual(INT, NULLABLE_INT);
   }
 
   @Test
   public void testUnionSubset() {
-    Assert.assertNotEquals(0, COMPARATOR.compare(Schema.unionOf(INT, LONG, NULL), Schema.unionOf(INT, LONG)));
+    assertNotEqual(Schema.unionOf(INT, LONG, NULL), Schema.unionOf(INT, LONG));
   }
 
   @Test
   public void testSimpleArrayComponents() {
-    Assert.assertNotEquals(0, COMPARATOR.compare(Schema.arrayOf(INT), Schema.arrayOf(LONG)));
-    Assert.assertNotEquals(0, COMPARATOR.compare(Schema.arrayOf(INT), Schema.arrayOf(NULLABLE_INT)));
+    assertNotEqual(Schema.arrayOf(INT), Schema.arrayOf(LONG));
+    assertNotEqual(Schema.arrayOf(INT), Schema.arrayOf(NULLABLE_INT));
   }
 
   @Test
   public void testNestedArrayComponents() {
-    Assert.assertNotEquals(0, COMPARATOR.compare(
-      Schema.arrayOf(RECORD_FLAT), Schema.arrayOf(Schema.recordOf("x", Schema.Field.of("x", INT)))));
+    assertNotEqual(Schema.arrayOf(RECORD_FLAT), Schema.arrayOf(Schema.recordOf("x", Schema.Field.of("x", INT))));
   }
 
   @Test
   public void testRecordFieldOrder() {
     Schema r1 = Schema.recordOf("x", Schema.Field.of("x", INT), Schema.Field.of("y", INT));
     Schema r2 = Schema.recordOf("x", Schema.Field.of("y", INT), Schema.Field.of("x", INT));
-    Assert.assertNotEquals(0, COMPARATOR.compare(r1, r2));
+    assertNotEqual(r1, r2);
+  }
+
+  @Test
+  public void testRecordSubset() {
+    Schema r1 = Schema.recordOf("x", Schema.Field.of("x", INT), Schema.Field.of("y", INT));
+    Schema r2 = Schema.recordOf("x", Schema.Field.of("x", INT));
+    assertNotEqual(r1, r2);
   }
 
   @Test
   public void testRecordName() {
-    Assert.assertNotEquals(0, COMPARATOR.compare(Schema.recordOf("x", Schema.Field.of("x", INT)),
-                                                 Schema.recordOf("y", Schema.Field.of("x", INT))));
+    assertNotEqual(Schema.recordOf("x", Schema.Field.of("x", INT)),
+                   Schema.recordOf("y", Schema.Field.of("x", INT)));
   }
 
   @Test
   public void testRecordFieldName() {
-    Assert.assertNotEquals(0, COMPARATOR.compare(Schema.recordOf("x", Schema.Field.of("x", INT)),
-                                                 Schema.recordOf("x", Schema.Field.of("y", INT))));
+    assertNotEqual(Schema.recordOf("x", Schema.Field.of("x", INT)),
+                   Schema.recordOf("x", Schema.Field.of("y", INT)));
   }
 
   @Test
@@ -120,7 +126,7 @@ public class SchemaComparatorTest {
                                     Schema.Field.of("middle", middle));
     Schema outer2 = Schema.recordOf("outer",
                                     Schema.Field.of("middle", RECORD_FLAT));
-    Assert.assertNotEquals(0, COMPARATOR.compare(outer1, outer2));
+    assertNotEqual(outer1, outer2);
     Assert.assertEquals(0, COMPARATOR.compare(outer1, outer1));
     Assert.assertEquals(0, COMPARATOR.compare(outer2, outer2));
   }

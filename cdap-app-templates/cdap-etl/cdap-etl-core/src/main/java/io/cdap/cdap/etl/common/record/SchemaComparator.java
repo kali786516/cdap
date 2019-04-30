@@ -14,7 +14,7 @@
  * the License.
  */
 
-package io.cdap.cdap.etl.batch;
+package io.cdap.cdap.etl.common.record;
 
 import io.cdap.cdap.api.data.schema.Schema;
 
@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 
 /**
  * Compares schemas.
@@ -29,15 +30,17 @@ import java.util.Map;
  * If they are of different physical types, they are compared according to the natural ordering of their types.
  * If they are of different logical types, they are compared according to the natural ordering of their logical types.
  *
- * Union schemas are compared by comparing their union schemas in order. If one union is a subset of another union,
- * it is less than that union.
+ * Union schemas are first compared by the number of schemas they have.
+ * A union with fewer schemas is less than a union with more.
+ * If the number of schemas are the same, the schemas are compared in order.
  *
  * Array schemas are compared by their component schemas.
  *
- * Record schemas are compared by their fields in order. If one record schema is a subset of the other,
- * it is less than that record schema.
+ * Record schemas are first compared by the number of fields they have.
+ * A record with fewer fields is less than a record with more.
+ * If the number of fields are the same, their fields are compared in order.
  *
- * A schema field is first compared by schema. If the field schemas are the same, they are compared by field name.
+ * A schema field is first compared by field name. If the names are the same, they are compared by schema.
  *
  * Map schemas are compared first by the key schema, then by the value schema.
  */
@@ -67,7 +70,7 @@ public class SchemaComparator implements Comparator<Schema> {
     switch (s1.getType()) {
       case UNION:
         //noinspection ConstantConditions
-        return compareUnionSchemas(s1.getUnionSchemas(), s2.getUnionSchemas());
+        return compareLists(s1.getUnionSchemas(), s2.getUnionSchemas(), this::compare);
       case ARRAY:
         return compare(s1.getComponentSchema(), s2.getComponentSchema());
       case MAP:
@@ -84,64 +87,39 @@ public class SchemaComparator implements Comparator<Schema> {
     if (comp != 0) {
       return comp;
     }
-    comp = compare(s1.getValue(), s2.getValue());
-    return comp;
+    return compare(s1.getValue(), s2.getValue());
   }
 
   private int compareRecordSchemas(Schema s1, Schema s2) {
-    int comp = s1.getRecordName().compareTo(s2.getRecordName());
-    if (comp != 0) {
-      return comp;
+    int nameComp = s1.getRecordName().compareTo(s2.getRecordName());
+    if (nameComp != 0) {
+      return nameComp;
     }
 
-    List<Schema.Field> s1Fields = s1.getFields();
-    List<Schema.Field> s2Fields = s2.getFields();
-    Iterator<Schema.Field> s1FieldsIter = s1Fields.iterator();
-    Iterator<Schema.Field> s2FieldsIter = s2Fields.iterator();
-    while (s1FieldsIter.hasNext()) {
-      Schema.Field f1 = s1FieldsIter.next();
-      Schema.Field f2 = s2FieldsIter.next();
-      comp = compare(f1.getSchema(), f2.getSchema());
+    //noinspection ConstantConditions
+    return compareLists(s1.getFields(), s2.getFields(), (f1, f2) -> {
+      int comp = f1.getName().compareTo(f2.getName());
       if (comp != 0) {
         return comp;
       }
-      comp = f1.getName().compareTo(f2.getName());
-      if (comp != 0) {
-        return comp;
-      }
-    }
-
-    if (s1FieldsIter.hasNext()) {
-      return 1;
-    } else if (s2FieldsIter.hasNext()) {
-      return -1;
-    } else {
-      return 0;
-    }
+      return compare(f1.getSchema(), f2.getSchema());
+    });
   }
 
-  private int compareUnionSchemas(List<Schema> s1Schemas, List<Schema> s2Schemas) {
-    // if the number of schemas in the union are different, the one with fewer schemas is less
-    int comp = Integer.compare(s1Schemas.size(), s2Schemas.size());
+  private <T> int compareLists(List<T> l1, List<T> l2, BiFunction<T, T, Integer> comparison) {
+    int comp = Integer.compare(l1.size(), l2.size());
     if (comp != 0) {
       return comp;
     }
-    // if the number of schemas in the union are the same, compare each schema in order
-    Iterator<Schema> s1SchemasIter = s1Schemas.iterator();
-    Iterator<Schema> s2SchemasIter = s2Schemas.iterator();
-    while (s1SchemasIter.hasNext() && s2SchemasIter.hasNext()) {
-      comp = compare(s1SchemasIter.next(), s2SchemasIter.next());
+
+    Iterator<T> iter1 = l1.iterator();
+    Iterator<T> iter2 = l2.iterator();
+    while (iter1.hasNext()) {
+      comp = comparison.apply(iter1.next(), iter2.next());
       if (comp != 0) {
         return comp;
       }
     }
-
-    if (s1SchemasIter.hasNext()) {
-      return 1;
-    } else if (s2SchemasIter.hasNext()) {
-      return -1;
-    } else {
-      return 0;
-    }
+    return 0;
   }
 }
