@@ -22,6 +22,9 @@ import io.cdap.cdap.api.data.schema.Schema;
 import io.cdap.cdap.api.data.schema.Schema.LogicalType;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -48,7 +51,6 @@ public class StructuredRecord implements Serializable {
   private static final SimpleDateFormat DEFAULT_FORMAT = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss z");
   private final Schema schema;
   private final Map<String, Object> fields;
-
   private static final long serialVersionUID = -6547770456592865613L;
 
   {
@@ -162,6 +164,30 @@ public class StructuredRecord implements Serializable {
     }
 
     return getZonedDateTime((long) value, TimeUnit.MICROSECONDS, zoneId);
+  }
+
+  /**
+   * Get the {@link BigDecimal} from field. The field must have {@link LogicalType#DECIMAL} as its logical type.
+   * @param fieldName decimal field to get.
+   * @return value of the field as a {@link BigDecimal}
+   * @throws UnexpectedFormatException if the provided field is not of {@link LogicalType#DECIMAL} type.
+   */
+  @Nullable
+  public BigDecimal getDecimal(String fieldName) {
+    LogicalType logicalType = validateAndGetLogicalType(schema.getField(fieldName), EnumSet.of(LogicalType.DECIMAL));
+    Object value = fields.get(fieldName);
+    if (value == null || logicalType == null) {
+      return null;
+    }
+
+    ByteBuffer decimal = ByteBuffer.wrap((byte[]) value);
+    Schema fieldSchema = this.schema.getField(fieldName).getSchema();
+    fieldSchema = fieldSchema.isNullable() ? fieldSchema.getNonNullable() : fieldSchema;
+    int scale = fieldSchema.getScale();
+
+    byte[] bytes = new byte[decimal.remaining()];
+    decimal.get(bytes);
+    return new BigDecimal(new BigInteger(bytes), scale);
   }
 
   /**
@@ -378,6 +404,41 @@ public class StructuredRecord implements Serializable {
       } catch (ArithmeticException e) {
         throw new UnexpectedFormatException(String.format("Field %s was set to a timestamp that is too large.",
                                                           fieldName));
+      }
+    }
+
+    /**
+     * Sets the decimal value for provided {@link LogicalType#DECIMAL} field.
+     *
+     * @param fieldName name of the field to set
+     * @param decimal value for the field
+     * @return this builder
+     * @throws UnexpectedFormatException if the field is not in the schema, or the field is not nullable but a null
+     *                                   value is given or if the provided decimal is invalid
+     */
+    public Builder setDecimal(String fieldName, @Nullable BigDecimal decimal) {
+      validateAndGetLogicalType(validateAndGetField(fieldName, decimal), EnumSet.of(LogicalType.DECIMAL));
+      if (decimal == null) {
+        fields.put(fieldName, null);
+        return this;
+      }
+
+      validateDecimal(decimal, fieldName);
+      fields.put(fieldName, decimal.unscaledValue().toByteArray());
+      return this;
+    }
+
+    private void validateDecimal(BigDecimal decimal, String fieldName) {
+      int scale = decimal.scale();
+      if (scale < 0) {
+        throw new UnexpectedFormatException(String.format("Field %s has negative scale. " +
+                                                            "Scale must be zero or positive integer.", fieldName));
+      }
+
+      int precision = decimal.precision();
+      if (precision <= 0) {
+        throw new UnexpectedFormatException(String.format("Field %s has negative or zero precision. " +
+                                                            "Precision must be a positive integer.", fieldName));
       }
     }
 

@@ -56,6 +56,8 @@ public final class SchemaTypeAdapter extends TypeAdapter<Schema> {
   private static final String KEYS = "keys";
   private static final String VALUES = "values";
   private static final String FIELDS = "fields";
+  private static final String PRECISION = "precision";
+  private static final String SCALE = "scale";
 
   @Override
   public void write(JsonWriter writer, Schema schema) throws IOException {
@@ -145,6 +147,8 @@ public final class SchemaTypeAdapter extends TypeAdapter<Schema> {
     List<Schema.Field> fields = null;
     // List of items for ARRAY type
     Schema items = null;
+    int precision = 0;
+    int scale = 0;
     // Loop through current object and populate the fields as required
     // For ENUM type List of enumValues will be populated
     // For ARRAY type items will be populated
@@ -155,6 +159,17 @@ public final class SchemaTypeAdapter extends TypeAdapter<Schema> {
       switch (name) {
         case LOGICAL_TYPE:
           logicalType = Schema.LogicalType.fromToken(reader.nextString());
+          if (logicalType == Schema.LogicalType.DECIMAL) {
+            String nextToken = reader.nextName();
+            switch (nextToken) {
+              case PRECISION:
+                precision = new Integer(reader.nextString());
+                break;
+              case SCALE:
+                scale = new Integer(reader.nextString());
+                break;
+            }
+          }
           break;
         case TYPE:
           schemaType = Schema.Type.valueOf(reader.nextString().toUpperCase());
@@ -215,6 +230,10 @@ public final class SchemaTypeAdapter extends TypeAdapter<Schema> {
     }
 
     if (logicalType != null) {
+      if (logicalType == Schema.LogicalType.DECIMAL) {
+        return Schema.decimalOf(precision, scale);
+      }
+
       return Schema.of(logicalType);
     }
 
@@ -324,6 +343,10 @@ public final class SchemaTypeAdapter extends TypeAdapter<Schema> {
     if (schema.getLogicalType() != null) {
       writer.beginObject().name(TYPE).value(schema.getType().name().toLowerCase());
       writer.name(LOGICAL_TYPE).value(schema.getLogicalType().getToken());
+      if (schema.getLogicalType() == Schema.LogicalType.DECIMAL) {
+        writer.name("precision").value(schema.getPrecision());
+        writer.name("scale").value(schema.getScale());
+      }
       writer.endObject();
       return writer;
     }
