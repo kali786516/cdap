@@ -143,6 +143,8 @@ public class StructuredRecordComparatorTest {
 
     r2 = StructuredRecord.builder(schema).set("x", Arrays.asList(5, 4, 3, 2, 1, 0)).build();
     testRecordsNotEqual(r1, r2);
+    r2 = StructuredRecord.builder(schema).set("x", new int[] { 5, 4, 3, 2, 1, 0 }).build();
+    testRecordsNotEqual(r1, r2);
   }
 
   @Test

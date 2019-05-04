@@ -442,27 +442,31 @@ public final class Schema implements Serializable {
    * @return A {@link Schema} of {@link Type#UNION UNION} type.
    */
   public static Schema unionOf(Iterable<Schema> schemas) {
-    int numMaps = 0;
-    int numArrays = 0;
+    List<Schema> mapSchemas = new ArrayList<>();
+    List<Schema> arraySchemas = new ArrayList<>();
     List<Schema> schemaList = new ArrayList<>();
     for (Schema schema : schemas) {
       schemaList.add(schema);
       Schema.Type type = schema.getType();
       if (type == Type.MAP) {
-        numMaps++;
+        mapSchemas.add(schema);
       }
       if (type == Type.ARRAY) {
-        numArrays++;
+        arraySchemas.add(schema);
       }
     }
     if (schemaList.isEmpty()) {
       throw new IllegalArgumentException("No union schema provided.");
     }
-    if (numMaps > 1) {
-      throw new IllegalArgumentException("A union is not allowed to contain more than one map.");
+    if (mapSchemas.size() > 1) {
+      throw new IllegalArgumentException(String.format(
+        "A union is not allowed to contain more than one map, but it contains %d schemas: %s",
+        mapSchemas.size(), mapSchemas));
     }
-    if (numArrays > 1) {
-      throw new IllegalArgumentException("A union is not allowed to contain more than one array.");
+    if (arraySchemas.size() > 1) {
+      throw new IllegalArgumentException(String.format(
+        "A union is not allowed to contain more than one array, but it contains %d schemas: %s",
+        arraySchemas.size(), arraySchemas));
     }
     return new Schema(Type.UNION, null, null, null, null, null, null, null, schemaList);
   }

@@ -224,7 +224,7 @@ public class StructuredRecordComparator implements Comparator<StructuredRecord> 
     Iterator<Object> val2Iter = val2Array.iterator();
 
     Comparator<Object> comparator = getComparator(fieldName, componentSchema);
-    while (val1Iter.hasNext() && val2Iter.hasNext()) {
+    while (val1Iter.hasNext()) {
       comp = comparator.compare(val1Iter.next(), val2Iter.next());
       if (comp != 0) {
         return comp;
@@ -274,7 +274,7 @@ public class StructuredRecordComparator implements Comparator<StructuredRecord> 
 
         @Override
         public boolean hasNext() {
-          return curr >= size;
+          return curr < size;
         }
 
         @Override
