@@ -480,6 +480,7 @@ public final class Schema implements Serializable {
 
   private final Type type;
   private final LogicalType logicalType;
+
   private final Map<String, Integer> enumValues;
   private final Map<Integer, String> enumIndexes;
 

@@ -423,24 +423,20 @@ public class StructuredRecord implements Serializable {
         return this;
       }
 
-      validateDecimal(decimal, fieldName);
-      fields.put(fieldName, decimal.unscaledValue().toByteArray());
-      return this;
-    }
+      if (decimal.precision() <= 0) {
+        throw new UnexpectedFormatException(String.format("Field %s has negative or zero precision. " +
+                                                            "Precision must be a positive integer.", fieldName));
+      }
 
-    private void validateDecimal(BigDecimal decimal, String fieldName) {
-      int scale = decimal.scale();
-      if (scale < 0) {
+      if (decimal.scale() < 0) {
         throw new UnexpectedFormatException(String.format("Field %s has negative scale. " +
                                                             "Scale must be zero or positive integer.", fieldName));
       }
 
-      int precision = decimal.precision();
-      if (precision <= 0) {
-        throw new UnexpectedFormatException(String.format("Field %s has negative or zero precision. " +
-                                                            "Precision must be a positive integer.", fieldName));
-      }
+      fields.put(fieldName, decimal.unscaledValue().toByteArray());
+      return this;
     }
+
 
     /**
      * Convert the given date into the type of the given field, and set the value for that field.

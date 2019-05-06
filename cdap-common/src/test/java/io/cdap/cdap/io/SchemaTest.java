@@ -157,8 +157,8 @@ public class SchemaTest {
   @Test
   public void testAvroEnumSchema() throws Exception {
     org.apache.avro.Schema schema = org.apache.avro.Schema.createEnum("UserInterests", "Describes interests of user",
-                                                                      "org.example.schema",
-                                                                      ImmutableList.of("CRICKET", "BASEBALL"));
+                                                                        "org.example.schema",
+                                                                        ImmutableList.of("CRICKET", "BASEBALL"));
 
     Schema parsedSchema = Schema.parseJson(schema.toString());
     Assert.assertEquals(ImmutableSet.of("CRICKET", "BASEBALL"), parsedSchema.getEnumValues());
@@ -293,25 +293,25 @@ public class SchemaTest {
                             Schema.mapOf(Schema.arrayOf(Schema.of(Schema.Type.BYTES)),
                                          Schema.mapOf(Schema.of(Schema.Type.BOOLEAN),
                                                       Schema.of(Schema.Type.BYTES)))
-            )))
+          )))
         )),
       Schema.Field.of("y", Schema.of(Schema.Type.INT)));
     String schemaStr =
       "x map<" +
         "record<" +
-        "x:string not null," +
-        "y:array<string not null> not null," +
-        "z:map<bytes not null,double not null> not null" +
+          "x:string not null," +
+          "y:array<string not null> not null," +
+          "z:map<bytes not null,double not null> not null" +
         "> not null," +
         "array<" +
-        "record<" +
-        "x:map<" +
-        "array<bytes not null> not null," +
-        "map<boolean not null,bytes not null> not null" +
+          "record<" +
+            "x:map<" +
+              "array<bytes not null> not null," +
+              "map<boolean not null,bytes not null> not null" +
+            "> not null" +
+          "> not null" +
         "> not null" +
-        "> not null" +
-        "> not null" +
-        "> not null, y int not null";
+      "> not null, y int not null";
     Assert.assertEquals(expected, Schema.parseSQL(schemaStr));
   }
 
